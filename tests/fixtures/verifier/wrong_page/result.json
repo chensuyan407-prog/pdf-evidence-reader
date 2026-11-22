@@ -1,0 +1,41 @@
+{
+ "case_id": "gpt3",
+ "zero_acc": "70.9",
+ "one_ppl": "4.61",
+ "status": "success",
+ "_contract_fields": [
+  "zero_acc",
+  "one_ppl"
+ ],
+ "evidence": [
+  {
+   "field": "zero_acc",
+   "type": "table_cell",
+   "table": "Table H.1",
+   "page": 62,
+   "row": {
+    "Name": "HellaSwag",
+    "Metric": "acc",
+    "Split": "dev"
+   },
+   "column": "Zero-Shot/13B",
+   "value": "70.9"
+  },
+  {
+   "field": "one_ppl",
+   "type": "table_cell",
+   "table": "Table H.1",
+   "page": 63,
+   "row": {
+    "Name": "LAMBADA",
+    "Metric": "ppl",
+    "Split": "test"
+   },
+   "column": "One-Shot/6.7B",
+   "value": "4.61"
+  }
+ ],
+ "unreported": [],
+ "uncertainty": [],
+ "conflicts": []
+}

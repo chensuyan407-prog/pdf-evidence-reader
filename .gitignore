@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pdf
+tests/out/
+tests/v03/out/
+tests/pdfs/
+tests/holdout_pdfs/
+execution/

@@ -1,0 +1,124 @@
+{
+ "tab_correct": {
+  "bleu": [
+   "supported_by_table_cell",
+   false
+  ],
+  "cost": [
+   "supported_by_table_cell",
+   false
+  ]
+ },
+ "tab_value_999": {
+  "bleu": [
+   "value_mismatch",
+   false
+  ]
+ },
+ "tab_adjacent_27_3": {
+  "bleu": [
+   "column_mismatch",
+   false
+  ]
+ },
+ "tab_wrong_row": {
+  "bleu": [
+   "evidence_unsupported",
+   false
+  ]
+ },
+ "tab_wrong_page": {
+  "bleu": [
+   "evidence_unsupported",
+   false
+  ]
+ },
+ "tab_truncated_old_parse": {
+  "cost": [
+   "parsed_cell_incomplete",
+   true
+  ]
+ },
+ "tab_truncated_constructed_op": {
+  "cost": [
+   "parsed_cell_incomplete",
+   true
+  ]
+ },
+ "tab_truncated_constructed_noop": {
+  "cost": [
+   "parsed_cell_incomplete",
+   true
+  ]
+ },
+ "tab_missing_exponent_constructed": {
+  "cost": [
+   "parsed_cell_incomplete",
+   true
+  ]
+ },
+ "txt_unrelated_dropout": {
+  "bleu": [
+   "string_match_only",
+   true
+  ]
+ },
+ "img_correct": {
+  "velocity": [
+   "image_read_unverified",
+   true
+  ],
+  "distance": [
+   "image_read_unverified",
+   true
+  ]
+ },
+ "img_wrong_page": {
+  "velocity": [
+   "image_provenance_mismatch",
+   false
+  ]
+ },
+ "img_wrong_document": {
+  "velocity": [
+   "image_provenance_mismatch",
+   false
+  ]
+ },
+ "img_replaced_crop": {
+  "velocity": [
+   "image_provenance_mismatch",
+   false
+  ]
+ },
+ "img_out_of_bounds": {
+  "velocity": [
+   "image_provenance_mismatch",
+   false
+  ]
+ },
+ "img_legacy_no_provenance": {
+  "velocity": [
+   "image_read_unbound",
+   true
+  ]
+ },
+ "img_moved_with_pdf": {
+  "velocity": [
+   "image_read_unverified",
+   true
+  ]
+ },
+ "img_moved_without_pdf": {
+  "velocity": [
+   "image_read_unverified",
+   true
+  ]
+ },
+ "tab_unit_split_old_parse": {
+  "tokens": [
+   "parsed_cell_incomplete",
+   true
+  ]
+ }
+}

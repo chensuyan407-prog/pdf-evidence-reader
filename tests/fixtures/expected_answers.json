@@ -1,0 +1,8 @@
+{
+ "_source": "Read from the original pages: ResNet p1 abstract and p3 eq (2); GPT-3 p63 Table H.1; BERT p1 abstract (clean scan). The masked BERT copy has the abstract painted white.",
+ "gpt3": {"zero_acc": {"equals": "70.9"}, "one_ppl": {"equals": "4.61"}},
+ "resnet": {"ensemble_error": {"equals": "3.57%"},
+            "projection": {"contains_nospace": ["𝐲=ℱ(𝐱,{W_{i}})+W_{s}𝐱", "(2)"]}},
+ "bert": {"expansion": {"equals": "Bidirectional Encoder Representations from Transformers"}, "squad": {"equals": "83.1"}},
+ "bert_masked": {"expansion": {"null": true}, "squad": {"null": true}}
+}

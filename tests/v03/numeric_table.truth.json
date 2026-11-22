@@ -1,0 +1,38 @@
+{
+ "columns": [
+  "Method",
+  "Params (M)",
+  "dAcc",
+  "FLOPs",
+  "Score"
+ ],
+ "cells": {
+  "Baseline": {
+   "Params (M)": 125,
+   "dAcc": -0.5,
+   "FLOPs": 3.2e+18,
+   "Score": 71.3,
+   "Score_footnote": "b",
+   "label_footnote": "a"
+  },
+  "Ours": {
+   "Params (M)": 340,
+   "dAcc": 1.2,
+   "FLOPs": 1.1e+19,
+   "Score": 74.0,
+   "Score_footnote": "*"
+  },
+  "Ours (large)": {
+   "Params (M)": 1024,
+   "dAcc": -12,
+   "FLOPs": 1e+20,
+   "Score": 80.2
+  },
+  "Prior work [12]": {
+   "Params (M)": 87,
+   "dAcc": 0.0,
+   "FLOPs": 4.5e+17,
+   "Score": 69.9
+  }
+ }
+}

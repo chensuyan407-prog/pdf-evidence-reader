@@ -1,0 +1,279 @@
+{
+ "_written": "2026-11-21, after Freeze 1 and before running any v0.3 code on these files. Values read by eye from rendered pages (80-120 dpi).",
+ "kaplan_2001.08361": {
+  "pdf": "holdout_pdfs/2001.08361.pdf",
+  "table5_p20": {
+   "page": 20,
+   "caption_prefix": "Table 5",
+   "row_key_column": "Power Law",
+   "value_column": "Scale (tokenization-dependent)",
+   "rows": [
+    {
+     "row_contains": "0.076",
+     "value_numeric": 88000000000000.0,
+     "value_text_contains": [
+      "params",
+      "non-embed"
+     ]
+    },
+    {
+     "row_contains": "0.095",
+     "value_numeric": 54000000000000.0,
+     "value_text_contains": [
+      "tokens"
+     ]
+    },
+    {
+     "row_contains": "0.057",
+     "value_numeric": 16000000.0,
+     "value_text_contains": [
+      "PF-days"
+     ]
+    },
+    {
+     "row_contains": "0.050",
+     "value_numeric": 310000000.0,
+     "value_text_contains": [
+      "PF-days"
+     ]
+    },
+    {
+     "row_contains": "0.21",
+     "value_numeric": 210000000.0,
+     "value_text_contains": [
+      "tokens"
+     ]
+    },
+    {
+     "row_contains": "0.76",
+     "value_numeric": 2100.0,
+     "value_text_contains": [
+      "steps"
+     ]
+    }
+   ]
+  },
+  "table6_p20": {
+   "page": 20,
+   "caption_prefix": "Table 6",
+   "value_column": "Scale",
+   "rows": [
+    {
+     "row_contains": "0.73",
+     "value_numeric": 1300000000.0,
+     "value_text_contains": [
+      "params"
+     ]
+    },
+    {
+     "row_contains": "0.24",
+     "value_numeric": 2000000.0,
+     "value_text_contains": [
+      "tokens"
+     ]
+    },
+    {
+     "row_contains": "0.03",
+     "value_numeric": 5400.0,
+     "value_text_contains": [
+      "steps"
+     ]
+    },
+    {
+     "row_contains": "0.27",
+     "value_numeric": 20000000000.0,
+     "value_text_contains": [
+      "tokens"
+     ]
+    }
+   ]
+  },
+  "equation_1_4_p5": {
+   "page": 5,
+   "number": "1.4",
+   "symbols": {
+    "lhs B with subscript crit, argument (L)": [
+     "B_{crit}",
+     "(L)"
+    ],
+    "fraction numerator B_*": [
+     "\\frac{B_{*}}"
+    ],
+    "fraction denominator L to the power 1/alpha_B": [
+     "L^{1/\\alpha_{B}}"
+    ],
+    "B_* ~ 2 * 10^8 tokens": [
+     "B_{*}",
+     "\\sim",
+     "2",
+     "10^{8}",
+     "tokens"
+    ],
+    "alpha_B ~ 0.21": [
+     "\\alpha_{B}",
+     "0.21"
+    ]
+   }
+  }
+ },
+ "bn_1502.03167": {
+  "pdf": "holdout_pdfs/1502.03167.pdf",
+  "table_p8_captioned_figure4": {
+   "page": 8,
+   "caption_prefix": "Figure 4",
+   "row_key_column": "Model",
+   "cells": [
+    {
+     "row": "BN-Inception ensemble",
+     "col": "Top-1 error",
+     "value_numeric": 20.1
+    },
+    {
+     "row": "BN-Inception ensemble",
+     "col": "Top-5 error",
+     "value_numeric": 4.9,
+     "note": "printed 4.9%* (bold, asterisk footnote)"
+    },
+    {
+     "row": "BN-Inception ensemble",
+     "col": "Models",
+     "value_numeric": 6
+    },
+    {
+     "row": "BN-Inception multicrop",
+     "col": "Top-1 error",
+     "value_numeric": 21.99
+    },
+    {
+     "row": "Deep Image high-res",
+     "col": "Top-1 error",
+     "value_numeric": 24.88
+    },
+    {
+     "row": "Deep Image high-res",
+     "col": "Top-5 error",
+     "value_numeric": 7.42
+    }
+   ]
+  },
+  "equations": "no numbered display equation in this paper (the '(1)' on p3 is the superscript of x^(1)); number-based equation lookup is not applicable"
+ },
+ "chinchilla_2203.15556": {
+  "_written": "2026-11-21 after Freeze 1, before any v0.3 code ran on this file; read from page images (85 dpi). '|' separates accepted alternatives.",
+  "pdf": "holdout_pdfs/2203.15556.pdf",
+  "table3_p8": {
+   "page": 8,
+   "caption_prefix": "Table 3",
+   "row_key_column": "Parameters",
+   "cells": [
+    {
+     "row": "400 Million",
+     "col": "FLOPs",
+     "value_numeric": 1.92e+19
+    },
+    {
+     "row": "400 Million",
+     "col": "Tokens",
+     "value_text": "8.0 Billion"
+    },
+    {
+     "row": "67 Billion",
+     "col": "FLOPs",
+     "value_numeric": 5.76e+23
+    },
+    {
+     "row": "175 Billion",
+     "col": "FLOPs",
+     "value_numeric": 3.85e+24
+    },
+    {
+     "row": "175 Billion",
+     "col": "Tokens",
+     "value_text": "3.7 Trillion"
+    },
+    {
+     "row": "10 Trillion",
+     "col": "FLOPs",
+     "value_numeric": 1.3e+28
+    },
+    {
+     "row": "10 Trillion",
+     "col": "FLOPs (in Gopher unit)",
+     "value_numeric": 22515.9
+    }
+   ]
+  },
+  "table2_p8": {
+   "page": 8,
+   "caption_prefix": "Table 2",
+   "row_key_column": "Approach",
+   "cells": [
+    {
+     "row": "2. IsoFLOP profiles",
+     "col_contains": "Coeff. a",
+     "value_text": "0.49 (0.462, 0.534)"
+    },
+    {
+     "row": "2. IsoFLOP profiles",
+     "col_contains": "Coeff. b",
+     "value_text": "0.51 (0.483, 0.529)"
+    },
+    {
+     "row": "Kaplan et al. (2020)",
+     "col_contains": "Coeff. a",
+     "value_text": "0.73"
+    },
+    {
+     "row": "Kaplan et al. (2020)",
+     "col_contains": "Coeff. b",
+     "value_text": "0.27"
+    }
+   ]
+  },
+  "equation_2_p6": {
+   "page": 6,
+   "number": "2",
+   "symbols": {
+    "hat L of (N, D)": [
+     "\\hat{L}",
+     "(N,D)"
+    ],
+    "defined-as sign": [
+     "≜|\\triangleq"
+    ],
+    "E plus": [
+     "E+"
+    ],
+    "fraction A over N^alpha": [
+     "\\frac{A}{N^{\\alpha}}"
+    ],
+    "fraction B over D^beta": [
+     "\\frac{B}{D^{\\beta}}"
+    ]
+   }
+  },
+  "equation_3_p6": {
+   "page": 6,
+   "number": "3",
+   "symbols": {
+    "min with subscript A,B,E,alpha,beta": [
+     "min",
+     "A,B,E,\\alpha,\\beta"
+    ],
+    "sum over Runs i": [
+     "\\sum_{Runsi}|\\sum_{Runs i}"
+    ],
+    "Huber with subscript delta": [
+     "Huber_{\\delta}"
+    ],
+    "log hat L(N_i, D_i)": [
+     "\\log",
+     "\\hat{L}(N_{i},D_{i})"
+    ],
+    "minus log L_i": [
+     "-\\logL_{i}"
+    ]
+   }
+  }
+ }
+}

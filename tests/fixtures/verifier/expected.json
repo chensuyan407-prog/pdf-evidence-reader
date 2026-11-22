@@ -1,0 +1,21 @@
+{
+ "correct": {
+  "zero_acc": "supported_by_table_cell",
+  "one_ppl": "supported_by_table_cell"
+ },
+ "answer_999": {
+  "zero_acc": "value_mismatch"
+ },
+ "answer_789_13b": {
+  "zero_acc": "column_mismatch"
+ },
+ "wrong_row": {
+  "zero_acc": "evidence_unsupported"
+ },
+ "wrong_page": {
+  "zero_acc": "evidence_unsupported"
+ },
+ "legacy_wrong_cell": {
+  "zero_acc": "value_not_in_evidence"
+ }
+}

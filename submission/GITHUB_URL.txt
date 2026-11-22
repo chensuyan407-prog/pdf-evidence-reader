@@ -1,2 +1,2 @@
 https://github.com/chensuyan407-prog/pdf-evidence-reader
-submission/SKILL.md
+SKILL.md

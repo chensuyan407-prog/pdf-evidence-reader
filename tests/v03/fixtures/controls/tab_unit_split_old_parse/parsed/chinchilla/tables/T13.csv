@@ -1,0 +1,4 @@
+Approach,Coef. 𝑎 where 𝑁 𝑜𝑝𝑡 ∝ 𝐶^𝑎,Coef. 𝑏 where 𝐷 𝑜𝑝𝑡 ∝ 𝐶^𝑏
+C4,0.50,0.50
+GitHub,0.53,0.47
+Kaplan et al. (2020),0.73,0.27

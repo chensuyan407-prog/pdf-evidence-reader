@@ -1,0 +1,958 @@
+{
+ "status": "partial",
+ "meta": {
+  "source_file": "C:\\Users\\12117\\Desktop\\bohrium-pdf-evidence-reader\\v0.3\\tests\\pdfs\\hubble.pdf",
+  "parser": "pdf-evidence parse_pdf.py 0.3.0",
+  "pymupdf": "1.28.2",
+  "sha256": "6f9c3879b4b95b39ce8f38a51ecd9d10e3da41ac3dd785cfd27ba84a778cecbb",
+  "page_count": 6,
+  "metadata": {
+   "format": "PDF 1.7"
+  },
+  "was_encrypted": false,
+  "body_font_size": 10.0
+ },
+ "pages_parsed": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6
+ ],
+ "pages_not_parsed": [],
+ "warnings": [
+  {
+   "page": 1,
+   "code": "ocr_needed_but_unavailable",
+   "detail": "no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading."
+  },
+  {
+   "page": 2,
+   "code": "ocr_needed_but_unavailable",
+   "detail": "no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading."
+  },
+  {
+   "page": 3,
+   "code": "ocr_needed_but_unavailable",
+   "detail": "no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading."
+  },
+  {
+   "page": 4,
+   "code": "ocr_needed_but_unavailable",
+   "detail": "no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading."
+  },
+  {
+   "page": 5,
+   "code": "ocr_needed_but_unavailable",
+   "detail": "no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading."
+  },
+  {
+   "page": 6,
+   "code": "ocr_needed_but_unavailable",
+   "detail": "no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading."
+  }
+ ],
+ "pages": [
+  {
+   "page": 1,
+   "width": 471.36,
+   "height": 725.52,
+   "text_layer_chars": 0,
+   "image_coverage": 1.0,
+   "garbled_ratio": 0.0,
+   "source": "image_only",
+   "ocr": {
+    "ocr": "unavailable",
+    "reason": "tesseract executable not found on PATH"
+   },
+   "ocr_reason": "no text layer (scanned)",
+   "page_image": "page_images/page_001.png",
+   "page_image_dpi": 150,
+   "image_regions": [
+    {
+     "id": "p1-r1",
+     "page": 1,
+     "bbox": [
+      92.6,
+      76.3,
+      105.1,
+      82.6
+     ],
+     "ink_ratio": 0.6183
+    },
+    {
+     "id": "p1-r2",
+     "page": 1,
+     "bbox": [
+      197.3,
+      75.8,
+      310.6,
+      82.6
+     ],
+     "ink_ratio": 0.408
+    },
+    {
+     "id": "p1-r3",
+     "page": 1,
+     "bbox": [
+      360.0,
+      75.8,
+      414.2,
+      82.6
+     ],
+     "ink_ratio": 0.3249
+    },
+    {
+     "id": "p1-r4",
+     "page": 1,
+     "bbox": [
+      92.2,
+      96.5,
+      415.2,
+      250.6
+     ],
+     "ink_ratio": 0.1977
+    },
+    {
+     "id": "p1-r5",
+     "page": 1,
+     "bbox": [
+      223.7,
+      271.7,
+      283.2,
+      273.1
+     ],
+     "ink_ratio": 0.9355
+    },
+    {
+     "id": "p1-r6",
+     "page": 1,
+     "bbox": [
+      98.4,
+      292.8,
+      409.4,
+      313.4
+     ],
+     "ink_ratio": 0.1975
+    },
+    {
+     "id": "p1-r7",
+     "page": 1,
+     "bbox": [
+      212.2,
+      323.5,
+      296.6,
+      332.2
+     ],
+     "ink_ratio": 0.3191
+    },
+    {
+     "id": "p1-r8",
+     "page": 1,
+     "bbox": [
+      120.5,
+      341.8,
+      387.8,
+      349.0
+     ],
+     "ink_ratio": 0.3581
+    },
+    {
+     "id": "p1-r9",
+     "page": 1,
+     "bbox": [
+      189.6,
+      357.6,
+      314.9,
+      365.8
+     ],
+     "ink_ratio": 0.3189
+    },
+    {
+     "id": "p1-r10",
+     "page": 1,
+     "bbox": [
+      93.1,
+      376.3,
+      416.6,
+      614.4
+     ],
+     "ink_ratio": 0.2093
+    }
+   ],
+   "has_equation_number": false,
+   "n_figure_text_blocks": 0,
+   "column_gutters": [],
+   "n_columns": 1
+  },
+  {
+   "page": 2,
+   "width": 471.36,
+   "height": 725.52,
+   "text_layer_chars": 0,
+   "image_coverage": 0.966,
+   "garbled_ratio": 0.0,
+   "source": "image_only",
+   "ocr": {
+    "ocr": "unavailable",
+    "reason": "tesseract executable not found on PATH"
+   },
+   "ocr_reason": "no text layer (scanned)",
+   "page_image": "page_images/page_002.png",
+   "page_image_dpi": 150,
+   "image_regions": [
+    {
+     "id": "p2-r1",
+     "page": 2,
+     "bbox": [
+      56.2,
+      79.2,
+      107.0,
+      86.4
+     ],
+     "ink_ratio": 0.3296
+    },
+    {
+     "id": "p2-r2",
+     "page": 2,
+     "bbox": [
+      161.8,
+      79.2,
+      275.0,
+      85.9
+     ],
+     "ink_ratio": 0.3998
+    },
+    {
+     "id": "p2-r3",
+     "page": 2,
+     "bbox": [
+      366.7,
+      79.7,
+      379.2,
+      86.4
+     ],
+     "ink_ratio": 0.5412
+    },
+    {
+     "id": "p2-r4",
+     "page": 2,
+     "bbox": [
+      56.2,
+      99.4,
+      379.2,
+      119.5
+     ],
+     "ink_ratio": 0.2074
+    },
+    {
+     "id": "p2-r5",
+     "page": 2,
+     "bbox": [
+      55.2,
+      134.4,
+      379.2,
+      421.4
+     ],
+     "ink_ratio": 0.0811
+    },
+    {
+     "id": "p2-r6",
+     "page": 2,
+     "bbox": [
+      63.8,
+      429.1,
+      378.2,
+      506.9
+     ],
+     "ink_ratio": 0.1918
+    },
+    {
+     "id": "p2-r7",
+     "page": 2,
+     "bbox": [
+      55.7,
+      521.3,
+      378.2,
+      620.2
+     ],
+     "ink_ratio": 0.1956
+    }
+   ],
+   "has_equation_number": false,
+   "n_figure_text_blocks": 0,
+   "column_gutters": [],
+   "n_columns": 1
+  },
+  {
+   "page": 3,
+   "width": 471.36,
+   "height": 725.52,
+   "text_layer_chars": 0,
+   "image_coverage": 1.0,
+   "garbled_ratio": 0.0,
+   "source": "image_only",
+   "ocr": {
+    "ocr": "unavailable",
+    "reason": "tesseract executable not found on PATH"
+   },
+   "ocr_reason": "no text layer (scanned)",
+   "page_image": "page_images/page_003.png",
+   "page_image_dpi": 150,
+   "image_regions": [
+    {
+     "id": "p3-r1",
+     "page": 3,
+     "bbox": [
+      93.6,
+      73.0,
+      105.6,
+      79.7
+     ],
+     "ink_ratio": 0.5257
+    },
+    {
+     "id": "p3-r2",
+     "page": 3,
+     "bbox": [
+      179.5,
+      81.1,
+      183.4,
+      85.4
+     ],
+     "ink_ratio": 0.6944
+    },
+    {
+     "id": "p3-r3",
+     "page": 3,
+     "bbox": [
+      198.2,
+      73.4,
+      311.0,
+      81.6
+     ],
+     "ink_ratio": 0.3507
+    },
+    {
+     "id": "p3-r4",
+     "page": 3,
+     "bbox": [
+      360.5,
+      69.1,
+      422.4,
+      80.2
+     ],
+     "ink_ratio": 0.1793
+    },
+    {
+     "id": "p3-r5",
+     "page": 3,
+     "bbox": [
+      89.8,
+      93.6,
+      417.1,
+      333.1
+     ],
+     "ink_ratio": 0.2055
+    },
+    {
+     "id": "p3-r6",
+     "page": 3,
+     "bbox": [
+      139.7,
+      344.2,
+      371.0,
+      353.3
+     ],
+     "ink_ratio": 0.1947
+    },
+    {
+     "id": "p3-r7",
+     "page": 3,
+     "bbox": [
+      94.6,
+      364.8,
+      417.6,
+      397.4
+     ],
+     "ink_ratio": 0.194
+    },
+    {
+     "id": "p3-r8",
+     "page": 3,
+     "bbox": [
+      147.4,
+      419.5,
+      155.0,
+      456.0
+     ],
+     "ink_ratio": 0.2763
+    },
+    {
+     "id": "p3-r9",
+     "page": 3,
+     "bbox": [
+      147.8,
+      463.7,
+      157.4,
+      490.6
+     ],
+     "ink_ratio": 0.2348
+    },
+    {
+     "id": "p3-r10",
+     "page": 3,
+     "bbox": [
+      173.8,
+      409.9,
+      219.4,
+      456.5
+     ],
+     "ink_ratio": 0.2225
+    },
+    {
+     "id": "p3-r11",
+     "page": 3,
+     "bbox": [
+      174.2,
+      463.2,
+      228.0,
+      491.0
+     ],
+     "ink_ratio": 0.1547
+    },
+    {
+     "id": "p3-r12",
+     "page": 3,
+     "bbox": [
+      249.6,
+      409.9,
+      392.2,
+      456.5
+     ],
+     "ink_ratio": 0.0992
+    },
+    {
+     "id": "p3-r13",
+     "page": 3,
+     "bbox": [
+      250.1,
+      462.7,
+      304.3,
+      490.6
+     ],
+     "ink_ratio": 0.1469
+    },
+    {
+     "id": "p3-r14",
+     "page": 3,
+     "bbox": [
+      95.5,
+      503.0,
+      419.0,
+      608.6
+     ],
+     "ink_ratio": 0.2082
+    }
+   ],
+   "has_equation_number": false,
+   "n_figure_text_blocks": 0,
+   "column_gutters": [],
+   "n_columns": 1
+  },
+  {
+   "page": 4,
+   "width": 471.36,
+   "height": 725.52,
+   "text_layer_chars": 0,
+   "image_coverage": 0.966,
+   "garbled_ratio": 0.0,
+   "source": "image_only",
+   "ocr": {
+    "ocr": "unavailable",
+    "reason": "tesseract executable not found on PATH"
+   },
+   "ocr_reason": "no text layer (scanned)",
+   "page_image": "page_images/page_004.png",
+   "page_image_dpi": 150,
+   "image_regions": [
+    {
+     "id": "p4-r1",
+     "page": 4,
+     "bbox": [
+      57.6,
+      79.2,
+      108.5,
+      86.4
+     ],
+     "ink_ratio": 0.3201
+    },
+    {
+     "id": "p4-r2",
+     "page": 4,
+     "bbox": [
+      163.2,
+      78.7,
+      276.5,
+      85.4
+     ],
+     "ink_ratio": 0.3823
+    },
+    {
+     "id": "p4-r3",
+     "page": 4,
+     "bbox": [
+      368.2,
+      79.2,
+      379.7,
+      85.0
+     ],
+     "ink_ratio": 0.4583
+    },
+    {
+     "id": "p4-r4",
+     "page": 4,
+     "bbox": [
+      57.6,
+      99.4,
+      380.6,
+      193.0
+     ],
+     "ink_ratio": 0.1792
+    },
+    {
+     "id": "p4-r5",
+     "page": 4,
+     "bbox": [
+      57.6,
+      201.6,
+      380.6,
+      330.2
+     ],
+     "ink_ratio": 0.0843
+    },
+    {
+     "id": "p4-r6",
+     "page": 4,
+     "bbox": [
+      57.6,
+      461.8,
+      78.7,
+      468.0
+     ],
+     "ink_ratio": 0.5192
+    },
+    {
+     "id": "p4-r7",
+     "page": 4,
+     "bbox": [
+      93.1,
+      335.0,
+      110.4,
+      371.5
+     ],
+     "ink_ratio": 0.3454
+    },
+    {
+     "id": "p4-r8",
+     "page": 4,
+     "bbox": [
+      93.1,
+      377.3,
+      109.9,
+      413.3
+     ],
+     "ink_ratio": 0.3345
+    },
+    {
+     "id": "p4-r9",
+     "page": 4,
+     "bbox": [
+      92.6,
+      419.0,
+      118.1,
+      455.5
+     ],
+     "ink_ratio": 0.2468
+    },
+    {
+     "id": "p4-r10",
+     "page": 4,
+     "bbox": [
+      145.0,
+      335.0,
+      169.4,
+      372.0
+     ],
+     "ink_ratio": 0.2366
+    },
+    {
+     "id": "p4-r11",
+     "page": 4,
+     "bbox": [
+      144.5,
+      377.3,
+      169.0,
+      414.2
+     ],
+     "ink_ratio": 0.248
+    },
+    {
+     "id": "p4-r12",
+     "page": 4,
+     "bbox": [
+      144.5,
+      419.0,
+      174.7,
+      456.0
+     ],
+     "ink_ratio": 0.2072
+    },
+    {
+     "id": "p4-r13",
+     "page": 4,
+     "bbox": [
+      204.0,
+      335.0,
+      224.2,
+      372.0
+     ],
+     "ink_ratio": 0.2174
+    },
+    {
+     "id": "p4-r14",
+     "page": 4,
+     "bbox": [
+      203.5,
+      377.3,
+      224.2,
+      413.3
+     ],
+     "ink_ratio": 0.2062
+    },
+    {
+     "id": "p4-r15",
+     "page": 4,
+     "bbox": [
+      204.0,
+      419.0,
+      224.2,
+      455.0
+     ],
+     "ink_ratio": 0.2216
+    },
+    {
+     "id": "p4-r16",
+     "page": 4,
+     "bbox": [
+      258.2,
+      335.0,
+      274.6,
+      371.0
+     ],
+     "ink_ratio": 0.2482
+    },
+    {
+     "id": "p4-r17",
+     "page": 4,
+     "bbox": [
+      258.2,
+      376.8,
+      274.6,
+      413.3
+     ],
+     "ink_ratio": 0.255
+    },
+    {
+     "id": "p4-r18",
+     "page": 4,
+     "bbox": [
+      257.8,
+      419.0,
+      275.0,
+      455.0
+     ],
+     "ink_ratio": 0.2763
+    },
+    {
+     "id": "p4-r19",
+     "page": 4,
+     "bbox": [
+      309.1,
+      335.0,
+      325.4,
+      371.0
+     ],
+     "ink_ratio": 0.2298
+    },
+    {
+     "id": "p4-r20",
+     "page": 4,
+     "bbox": [
+      309.1,
+      376.8,
+      325.4,
+      412.8
+     ],
+     "ink_ratio": 0.2216
+    },
+    {
+     "id": "p4-r21",
+     "page": 4,
+     "bbox": [
+      309.1,
+      418.6,
+      325.4,
+      467.0
+     ],
+     "ink_ratio": 0.2222
+    },
+    {
+     "id": "p4-r22",
+     "page": 4,
+     "bbox": [
+      363.8,
+      335.0,
+      380.6,
+      371.0
+     ],
+     "ink_ratio": 0.2766
+    },
+    {
+     "id": "p4-r23",
+     "page": 4,
+     "bbox": [
+      363.8,
+      376.8,
+      380.6,
+      413.3
+     ],
+     "ink_ratio": 0.2541
+    },
+    {
+     "id": "p4-r24",
+     "page": 4,
+     "bbox": [
+      353.3,
+      418.6,
+      380.6,
+      467.0
+     ],
+     "ink_ratio": 0.1899
+    },
+    {
+     "id": "p4-r25",
+     "page": 4,
+     "bbox": [
+      58.1,
+      483.4,
+      380.6,
+      613.4
+     ],
+     "ink_ratio": 0.1909
+    }
+   ],
+   "has_equation_number": false,
+   "n_figure_text_blocks": 0,
+   "column_gutters": [],
+   "n_columns": 1
+  },
+  {
+   "page": 5,
+   "width": 471.36,
+   "height": 725.52,
+   "text_layer_chars": 0,
+   "image_coverage": 1.0,
+   "garbled_ratio": 0.0,
+   "source": "image_only",
+   "ocr": {
+    "ocr": "unavailable",
+    "reason": "tesseract executable not found on PATH"
+   },
+   "ocr_reason": "no text layer (scanned)",
+   "page_image": "page_images/page_005.png",
+   "page_image_dpi": 150,
+   "image_regions": [
+    {
+     "id": "p5-r1",
+     "page": 5,
+     "bbox": [
+      94.1,
+      78.2,
+      106.1,
+      84.5
+     ],
+     "ink_ratio": 0.5046
+    },
+    {
+     "id": "p5-r2",
+     "page": 5,
+     "bbox": [
+      198.7,
+      78.2,
+      312.0,
+      84.5
+     ],
+     "ink_ratio": 0.4299
+    },
+    {
+     "id": "p5-r3",
+     "page": 5,
+     "bbox": [
+      361.4,
+      78.7,
+      415.7,
+      85.0
+     ],
+     "ink_ratio": 0.3547
+    },
+    {
+     "id": "p5-r4",
+     "page": 5,
+     "bbox": [
+      93.1,
+      98.4,
+      416.6,
+      217.0
+     ],
+     "ink_ratio": 0.2142
+    },
+    {
+     "id": "p5-r5",
+     "page": 5,
+     "bbox": [
+      127.2,
+      230.9,
+      380.6,
+      485.8
+     ],
+     "ink_ratio": 0.1211
+    },
+    {
+     "id": "p5-r6",
+     "page": 5,
+     "bbox": [
+      93.1,
+      501.1,
+      416.6,
+      617.8
+     ],
+     "ink_ratio": 0.2189
+    }
+   ],
+   "has_equation_number": false,
+   "n_figure_text_blocks": 0,
+   "column_gutters": [],
+   "n_columns": 1
+  },
+  {
+   "page": 6,
+   "width": 471.36,
+   "height": 725.52,
+   "text_layer_chars": 0,
+   "image_coverage": 0.966,
+   "garbled_ratio": 0.0,
+   "source": "image_only",
+   "ocr": {
+    "ocr": "unavailable",
+    "reason": "tesseract executable not found on PATH"
+   },
+   "ocr_reason": "no text layer (scanned)",
+   "page_image": "page_images/page_006.png",
+   "page_image_dpi": 150,
+   "image_regions": [
+    {
+     "id": "p6-r1",
+     "page": 6,
+     "bbox": [
+      57.1,
+      79.2,
+      107.5,
+      86.4
+     ],
+     "ink_ratio": 0.3543
+    },
+    {
+     "id": "p6-r2",
+     "page": 6,
+     "bbox": [
+      162.2,
+      78.7,
+      275.0,
+      85.4
+     ],
+     "ink_ratio": 0.4176
+    },
+    {
+     "id": "p6-r3",
+     "page": 6,
+     "bbox": [
+      367.2,
+      79.2,
+      379.7,
+      85.9
+     ],
+     "ink_ratio": 0.4698
+    },
+    {
+     "id": "p6-r4",
+     "page": 6,
+     "bbox": [
+      56.6,
+      99.4,
+      382.6,
+      541.0
+     ],
+     "ink_ratio": 0.2154
+    },
+    {
+     "id": "p6-r5",
+     "page": 6,
+     "bbox": [
+      68.2,
+      546.2,
+      336.0,
+      584.6
+     ],
+     "ink_ratio": 0.1681
+    }
+   ],
+   "has_equation_number": false,
+   "n_figure_text_blocks": 0,
+   "column_gutters": [],
+   "n_columns": 1
+  }
+ ],
+ "ocr_pages": [],
+ "unresolved_pages": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6
+ ],
+ "sections": [],
+ "blocks": [],
+ "headers_footers": [],
+ "paragraphs": [],
+ "tables": [],
+ "figures": [],
+ "equations": [],
+ "footnotes": [],
+ "references": [],
+ "stats": {
+  "n_blocks": 0,
+  "n_sections": 0,
+  "n_tables": 0,
+  "n_figures": 0,
+  "n_equations": 0,
+  "n_references": 0,
+  "n_footnotes": 0,
+  "n_headers_footers_removed": 0,
+  "n_dehyphenated": 0,
+  "n_cross_block_paragraph_joins": 0,
+  "seconds": 0.542
+ }
+}

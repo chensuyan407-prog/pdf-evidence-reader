@@ -1,0 +1,7 @@
+Model,,Size (#,Parameters),Training,Tokens
+LaMDA (Thoppilan et 2022),"al.,",137,Billion,168,Billion
+"GPT-3 (Brown et al.,",2020),175,Billion,300,Billion
+"Jurassic (Lieber et al.,",2021),178,Billion,300,Billion
+"Gopher (Rae et al.,",2021),280,Billion,300,Billion
+MT-NLG 530B (Smith,"et al., 2022)",530,Billion,270,Billion
+Chinchilla,,70,Billion,1.4,Trillion

@@ -1,4 +1,4 @@
-# pdf-evidence-reader v0.3.1 — 科研 PDF 版式解析 + 证据定位 Skill
+# pdf-evidence-reader v0.4.0 — 科研 PDF 版式解析 + 证据定位 Skill
 
 把科研 PDF 解析成可继续处理、可回指原文的结构化结果；让 Agent 按行列名称取表值、按页码区块引文、按页图坐标目读扫描页；
 交付前由验证器分别检查“引文是否在原位置”和“答案是否被证据支持”。
@@ -12,7 +12,8 @@
 | `scripts/table_query.py` | 按行标识（`--row 列名=值`）和列表头路径（`--col 组头/叶列`）取单元格，返回值、页码、单元格坐标 |
 | `scripts/find_evidence.py` | 文本检索（BM25 / 正则 / 章节 / 表 / 页 / 按编号取公式 `--equation N`） |
 | `scripts/crop_region.py` | 按坐标或区域 id 裁剪页图并计算墨迹比例（`blank` 表示区域无可读内容） |
-| `scripts/run_case.py` | 一条命令：找 PDF、解析、生成 `result.json` 骨架（含 `case_id`、契约字段、`field_status`） |
+| `scripts/run_case.py` | 一条命令：找 PDF、解析、生成 `result.json` 骨架（含 `case_id`、契约字段、`field_status`）、`outline.md`（论文一页地图）、`structure_summary.json`，并打印可直接复制的后续命令 |
+| `scripts/fill_result.py` | 命令式回填：`put`（表格单元格 / 公式 / 原文引文 / 裁图）、`unreported`、`note`、`show`、`finalize`、`repair`；写入前按验证器规则预检，原子写入并留备份，保护 `case_id`/`status` 等核心键 |
 | `scripts/verify_result.py` | 逐字段核验：引文匹配 + 表格单元格重查 + 原页区域完整性 + 图像来源绑定；旧格式结果仍可读（缺来源记录时降级） |
 | `scripts/mathlayout.py` | 按编号聚合跨块公式、解码数学字形名、重建上下限/重音/上下标/分式 |
 | `scripts/provenance.py` | 裁图来源记录（源 PDF 哈希、页、bbox、裁图哈希）与核对 |
@@ -67,17 +68,39 @@ pip install "pymupdf>=1.23" numpy fonttools   # 测试环境：Python 3.13, PyMu
    `doc.json` 记录 `pages_parsed`/`pages_not_parsed`。只在有题注的页面运行 PyMuPDF find_tables 回退，只在有编号行的页面运行公式重建。
 7. 所有脚本以 UTF-8 输出（v0.2 在中文 Windows 控制台遇到 − 等字符会崩溃）。
 
+## v0.4 变更（本轮目标：真实论文结构难点 + Agent 低轮次、少犯错）
+
+1. **章节层级**：一行标题被 MuPDF 拆成多条“行”时按基线合并计数（BN 的 §2、§3、§3.1–3.4，GloVe 的 §4.4、§4.7 此前全部漏检）；
+   编号后只有符号的行（“1 N”）不再当标题；新增无编号加粗/加大单行标题（`kind: styled`，层级按相对字号推定）、
+   “Appendix A: …”、“D.2. Title” 形式的附录编号；“Proof of Lemma 1” 不再被误判为目录行。行尾 “Batch-” + 大写开头的下一行保留连字符。
+2. **图像形式的表格/图**：有文字层的页面中，内部没有文字层的嵌入图片（`raster_regions`）被识别并告警；靠近 “Table N” 题注时登记到
+   `tables_as_images`，解析时直接生成带来源记录的裁图（可作 `image_region` 证据）；有 tesseract 时附 OCR 文本（标注未核验）。
+   `table_query.py` 对这类表返回 `table_is_image` + 裁图路径，而不是 `table_not_found`。
+3. **跨页续表**：题注 “Table 2 (continued)” 与原表关联（`continued_from`）；`table_query.py` 按原表题注查询时自动检索所有续表部分
+   （无表头的续表借用原表列名），`--list` 汇总全部行键，`--markdown` 导出全部部分；行列查不到时给出 `did_you_mean`。
+4. **公式**：分式与根号按“最外层横线优先”处理，分母中的根号不再被提前吃掉（Attention 公式 (1) v0.3 误标 `auto` 且结构错误，
+   现为 `softmax(\frac{QK^{T}}{\sqrt{d_{k}}})V`）；无法解释的横线（上划线等）使状态降为 `partial`；
+   LaTeX 中 Unicode 数学斜体字母规范为普通字母、希腊字母规范为 `\alpha` 等命令，粗体保留 `\mathbf`；`\cdotmin` 这类粘连命令拆为 `\cdot min`。
+5. **工作流**：`fill_result.py` 取代手改 JSON（DeepSeek Harness 手改大 JSON 易写坏语法、漏字段、覆盖 `case_id`）。每次 `put` 用验证器同一套规则预检，
+   不通过则拒绝写入并给出原因/候选；`finalize` 为缺失字段写入 `not_determined` 说明、运行验证器、按结果设置 `success/partial/failed` 与
+   `status_reason`；JSON 被手改坏时自动从备份恢复，`case_id` 与契约键从骨架恢复。旧流程（手改 + `verify_result.py`）保持可用。
+6. **契约兼容**：契约里出现 `case_id`/`evidence`/`sources`/`status` 等与元数据同名的字段时，骨架保留元数据结构，验证器判为 `meta_field`
+   （v0.3 会把 `evidence` 字段置 null 并判 `no_evidence` 失败）。
+7. **导航与预算**：`outline.md` 汇总章节（含页码范围、区块 id）、每张表的列路径与行键、图像表、公式编号与状态、图、扫描页与告警；
+   `structure_summary.json` 增加作者/单位、摘要、章节页码范围、图、页面地图。`SKILL.md` 给出技能目录与解释器自动探测、批量命令与 64 次请求预算。
+
 ## 测试
 
 开发副本中的 `tests/`（不属于 Skill 资源）：`python tests/run_regression.py --skill submission/scripts --label new`，
-详见 `tests/README.md` 与 `ITERATION_REPORT.md`。
+`python tests/v03/run_v03.py --skill submission/scripts --label v03`，`python tests/v04/run_v04.py`（v0.4 新能力、工作流、契约形状、提交包限制），
+详见 `tests/README.md` 与 `ITERATION_REPORT_v0.4.md`。
 
-## 限制（v0.3 实测）
+## 限制（v0.3 实测；v0.4 已解决的条目见上文，未变的条目保留）
 
 - **无横线表格**：只靠横线检测表格；页面没有任何横线、且题注写成 “Figure N” 的表（留出 BN 第 8 页）完全检测不到；
   有 “Table N” 题注时才回退到 PyMuPDF find_tables。
 - **表头右对齐的多词表头**（如 Chinchilla 表 3 的 “FLOPs (in Gopher unit)”）首词可能归入左列，列名变成 “FLOPs FLOPs”，按列名查询失败（返回 col_not_found，不返回错值）。
-- **数学斜体字母**：字体把字母映射为 Unicode 数学斜体（𝐿、𝛼）时，LaTeX 中原样保留，未规范为 ASCII/lpha。
+- **数学斜体字母**：字体把字母映射为 Unicode 数学斜体（𝐿、𝛼）时，LaTeX 中原样保留，未规范为 ASCII/\alpha。
 - **公式嵌套上下标**：指数里的下标（L^{1/α_B} 中的 B）会丢失层级；多行/对齐公式、行内夹正文的公式标为 partial 并给裁图。
   按编号定位只适用于有编号的展示公式。
 - **叠放表**（表中间再出现一组表头）：下半段表头被当作数据行，行标签重复，返回 row_ambiguous（不返回错值）。
@@ -86,3 +109,7 @@ pip install "pymupdf>=1.23" numpy fonttools   # 测试环境：Python 3.13, PyMu
 - 扫描页无 OCR 时只能靠 Agent 目读；目读结果不做机器核验（来源一致只证明图来自该页）。OCR 质量未测（本机无 tesseract）。
 - 测试覆盖：6 篇真实论文（ResNet、GPT‑3、BERT 扫描、Attention、GloVe、Hubble 扫描）为回归；Kaplan、BN 为冻结代码后的留出；
   Chinchilla 因留出探针暴露验证器漏洞后转为回归。其他出版社版式、三栏、真实低质量扫描未测。
+- v0.4 补充：无编号标题按“加粗/加大 + 单行 + 后接正文”判定，层级按相对字号推定，非出版社样式信息；在 9 篇真实论文上新增的样式标题经人工抽查为真标题
+  （如 ResNet 附录的 “PASCAL VOC”、“MS COCO”），但未做独立留出验证。
+- 图像表只做定位、裁图和（可选）OCR，不做单元格结构重建；本机无 tesseract，OCR 路径未实测。
+- 留出集（Kaplan、BN、Chinchilla）的公式检查在 v0.4 修改后从 26/55 升到 34/55；这些改动是在看过留出结果之后做的，留出对这部分已不再是盲测。

@@ -1,0 +1,99 @@
+{
+ "case_id": "hubble",
+ "_contract_fields": [
+  "velocity",
+  "distance"
+ ],
+ "velocity": "−130 km/s",
+ "distance": "0.214 × 10⁶ pc",
+ "status": "success",
+ "unreported": [],
+ "uncertainty": [],
+ "conflicts": [],
+ "field_status": {
+  "velocity": "image_read",
+  "distance": "image_read"
+ },
+ "evidence": [
+  {
+   "field": "velocity",
+   "type": "image_region",
+   "page": 2,
+   "bbox": [
+    48.0,
+    128.0,
+    900.0,
+    474.0
+   ],
+   "crop": "parsed/hubble/crops/p2_48_128_386_474_150.png",
+   "provenance": {
+    "provenance_version": 1,
+    "tool": "crop_region.py",
+    "source_sha256": "6f9c3879b4b95b39ce8f38a51ecd9d10e3da41ac3dd785cfd27ba84a778cecbb",
+    "source_name": "hubble.pdf",
+    "page": 2,
+    "page_count": 6,
+    "page_size": [
+     471.36,
+     725.52
+    ],
+    "bbox": [
+     48.0,
+     128.0,
+     900.0,
+     474.0
+    ],
+    "dpi": 150,
+    "crop_file": "p2_48_128_386_474_150.png",
+    "crop_sha256": "0ace3c3a1f860dd8c48fc41bf530ef14a37633c383edd9df3ed7b21711e41182",
+    "crop_px": [
+     705,
+     722
+    ]
+   },
+   "transcription": "N. G. C. 6822 v = − 130 (km./sec.)",
+   "read_by": "agent_vision",
+   "legibility": "clear"
+  },
+  {
+   "field": "distance",
+   "type": "image_region",
+   "page": 2,
+   "bbox": [
+    48.0,
+    128.0,
+    386.0,
+    474.0
+   ],
+   "crop": "parsed/hubble/crops/p2_48_128_386_474_150.png",
+   "provenance": {
+    "provenance_version": 1,
+    "tool": "crop_region.py",
+    "source_sha256": "6f9c3879b4b95b39ce8f38a51ecd9d10e3da41ac3dd785cfd27ba84a778cecbb",
+    "source_name": "hubble.pdf",
+    "page": 2,
+    "page_count": 6,
+    "page_size": [
+     471.36,
+     725.52
+    ],
+    "bbox": [
+     48.0,
+     128.0,
+     386.0,
+     474.0
+    ],
+    "dpi": 150,
+    "crop_file": "p2_48_128_386_474_150.png",
+    "crop_sha256": "0ace3c3a1f860dd8c48fc41bf530ef14a37633c383edd9df3ed7b21711e41182",
+    "crop_px": [
+     705,
+     722
+    ]
+   },
+   "transcription": "N. G. C. 6822 r = 0.214 (10⁶ parsecs)",
+   "read_by": "agent_vision",
+   "legibility": "clear"
+  }
+ ]
+}

@@ -6,3 +6,5 @@ tests/v03/out/
 tests/pdfs/
 tests/holdout_pdfs/
 execution/
+tests/v04/out/
+tests/v04/samples/

@@ -1,0 +1,27 @@
+{
+ "case_id": "chinchilla",
+ "_contract_fields": [
+  "tokens"
+ ],
+ "tokens": "Billion",
+ "status": "success",
+ "unreported": [],
+ "uncertainty": [],
+ "conflicts": [],
+ "field_status": {
+  "tokens": "text_layer"
+ },
+ "evidence": [
+  {
+   "field": "tokens",
+   "type": "table_cell",
+   "table": "Table 3",
+   "page": 8,
+   "row": {
+    "Parameters": "Million"
+   },
+   "column": "Tokens",
+   "value": "Billion"
+  }
+ ]
+}

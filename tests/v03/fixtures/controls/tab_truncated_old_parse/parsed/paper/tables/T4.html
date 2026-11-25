@@ -1,0 +1,132 @@
+<table>
+  <tr>
+    <th></th>
+    <th>train</th>
+    <th>PPL BLEU params</th>
+  </tr>
+  <tr>
+    <th></th>
+    <th>N dmodel dff h dk dv Pdrop ϵls</th>
+    <th></th>
+  </tr>
+  <tr>
+    <th></th>
+    <th>steps</th>
+    <th>(dev) (dev) ×106</th>
+  </tr>
+  <tr>
+    <td>base</td>
+    <td>6 512 2048 8 64 64 0.1 0.1 100K</td>
+    <td>4.92 25.8 65</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>1 512 512</td>
+    <td>5.29 24.9</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>4 128 128</td>
+    <td>5.00 25.5</td>
+  </tr>
+  <tr>
+    <td>(A)</td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>16 32 32</td>
+    <td>4.91 25.8</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>32 16 16</td>
+    <td>5.01 25.4</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>16</td>
+    <td>5.16 25.1 58</td>
+  </tr>
+  <tr>
+    <td>(B)</td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>32</td>
+    <td>5.01 25.4 60</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>2</td>
+    <td>6.11 23.7 36</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>4</td>
+    <td>5.19 25.3 50</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>8</td>
+    <td>4.88 25.5 80</td>
+  </tr>
+  <tr>
+    <td>(C)</td>
+    <td>256 32 32</td>
+    <td>5.75 24.5 28</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>1024 128 128</td>
+    <td>4.66 26.0 168</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>1024</td>
+    <td>5.12 25.4 53</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>4096</td>
+    <td>4.75 26.2 90</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>0.0</td>
+    <td>5.77 24.6</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>0.2</td>
+    <td>4.95 25.5</td>
+  </tr>
+  <tr>
+    <td>(D)</td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>0.0</td>
+    <td>4.67 25.3</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>0.2</td>
+    <td>5.47 25.7</td>
+  </tr>
+  <tr>
+    <td>(E)</td>
+    <td>positional embedding instead of sinusoids</td>
+    <td>4.92 25.7</td>
+  </tr>
+  <tr>
+    <td>big</td>
+    <td>6 1024 4096 16 0.3 300K</td>
+    <td>4.33 26.4 213</td>
+  </tr>
+</table>

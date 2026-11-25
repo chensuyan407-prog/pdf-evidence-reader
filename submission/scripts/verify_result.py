@@ -59,11 +59,13 @@ except ImportError:  # pragma: no cover
     import fitz
 
 FAIL_VERDICTS = {"value_mismatch", "column_mismatch", "row_mismatch", "evidence_unsupported", "parsed_cell_incomplete",
-                 "image_provenance_mismatch", "value_not_in_evidence", "no_evidence", "null_without_reason", "answer_incomplete"}
+                 "image_provenance_mismatch", "value_not_in_evidence", "no_evidence", "null_without_reason",
+                 "answer_incomplete", "contract_type_mismatch"}
 REVIEW_VERDICTS = {"equation_needs_visual_check", "string_match_only", "image_read_unverified", "image_read_unbound", "parsed_cell_incomplete",
-                   "supported_by_parsed_cell_region_unchecked", "answer_incomplete"}
+                   "supported_by_parsed_cell_region_unchecked", "answer_incomplete", "not_determined"}
 META_KEYS = {"case_id", "status", "sources", "evidence", "uncertainty", "unreported", "conflicts", "run_status",
-             "change_log", "verification", "field_status", "_contract_fields", "_contract_raw", "_fill_instructions"}
+             "change_log", "verification", "field_status", "status_reason", "_contract_fields",
+             "_contract_required", "_contract_schema", "_contract_raw", "_fill_instructions"}
 SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺", "0123456789-+")
 RE_SCI = re.compile(r"([-−]?\d[\d,]*(?:\.\d+)?)\s*[·×x*∗⋅]\s*10\s*(?:\^\s*\{?\s*([-−]?\d+)\s*\}?|([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+))")
 RE_POW = re.compile(r"(?<![\d.])10\s*(?:\^\s*\{?\s*([-−]?\d+)\s*\}?|([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+))")
@@ -71,13 +73,129 @@ RE_E = re.compile(r"([-−]?\d+(?:\.\d+)?)[eE]([-+]?\d+)")
 RE_NUM = re.compile(r"[-−]?\d+(?:[.,]\d+)*")
 OPS = "·×*∗⋅^+−/="
 UNIT_RE = re.compile(r"^(%|‰|km/s|km\.?/sec\.?|m/s|FLOPs?|GB|MB|KB|ms|s|h|M|B|K|pc|kpc|Mpc|K|°C|dB|Hz|kHz|MHz|GHz|eV|keV|MeV|GeV)\b", re.I)
+TYPE_MAP = {"int": "integer", "integer": "integer", "float": "number", "number": "number",
+            "str": "string", "string": "string", "text": "string", "bool": "boolean", "boolean": "boolean",
+            "list": "array", "array": "array", "dict": "object", "object": "object", "null": "null"}
+STOP_FIELD_TOKENS = {"value", "rate", "score", "count", "number", "total", "mean", "result", "answer", "field", "data", "metric", "text", "item"}
 
 
 def norm(s):
-    s = (s or "").replace("­", "")
+    if s is None:
+        s = ""
+    elif not isinstance(s, str):
+        s = json.dumps(s, ensure_ascii=False)
+    s = s.replace("­", "")
     s = re.sub(r"(\w)-\s+(\w)", r"\1\2", s)
     s = re.sub(r"[\s　]+", "", s).lower()
     return s.replace("’", "'").replace("“", '"').replace("”", '"').replace("−", "-").replace("–", "-")
+
+
+def _atomic_write_json(path, obj):
+    d = os.path.dirname(os.path.abspath(path))
+    os.makedirs(d, exist_ok=True)
+    tmp = os.path.join(d, f".{os.path.basename(path)}.{os.getpid()}.tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(obj, fh, ensure_ascii=False, indent=1)
+        fh.flush()
+    with open(tmp, encoding="utf-8") as fh:
+        json.load(fh)
+    os.replace(tmp, path)
+
+
+def subschema_for_path(schema_map, dotted_path):
+    if not isinstance(schema_map, dict) or not dotted_path:
+        return None
+    parts = dotted_path.split(".")
+    cur = schema_map.get(parts[0])
+    for part in parts[1:]:
+        if not isinstance(cur, dict):
+            return None
+        props = cur.get("properties")
+        if isinstance(props, dict) and part in props:
+            cur = props[part]
+        else:
+            return None
+    return cur
+
+
+def _matches_type(val, tname):
+    if tname == "null":
+        return val is None
+    if tname == "boolean":
+        return isinstance(val, bool)
+    if tname == "integer":
+        return isinstance(val, int) and not isinstance(val, bool)
+    if tname == "number":
+        return isinstance(val, (int, float)) and not isinstance(val, bool)
+    if tname == "string":
+        return isinstance(val, str)
+    if tname == "array":
+        return isinstance(val, list)
+    if tname == "object":
+        return isinstance(val, dict)
+    return True
+
+
+def validate_value(val, schema, path=""):
+    """Recursively validate val against a JSON-Schema-like dict; return list of error strings."""
+    if not schema:
+        return []
+    if isinstance(schema, str):
+        t = TYPE_MAP.get(schema.strip().lower())
+        schema = {"type": t} if t else {}
+    if not isinstance(schema, dict):
+        return []
+    errs = []
+    raw_t = schema.get("type")
+    types = []
+    if isinstance(raw_t, list):
+        types = [TYPE_MAP.get(str(x).strip().lower()) for x in raw_t if TYPE_MAP.get(str(x).strip().lower())]
+    elif isinstance(raw_t, str):
+        t = TYPE_MAP.get(raw_t.strip().lower())
+        if t:
+            types = [t]
+    elif isinstance(schema.get("properties"), dict):
+        types = ["object"]
+    elif "items" in schema:
+        types = ["array"]
+    if types and not any(_matches_type(val, t) for t in types):
+        errs.append(f"{path}: expected {'|'.join(types)}, got {type(val).__name__} ({val!r})")
+        return errs
+    if isinstance(schema.get("enum"), list) and val not in schema["enum"]:
+        errs.append(f"{path}: value {val!r} not in enum {schema['enum']!r}")
+    if isinstance(val, list) and "items" in schema:
+        items_s = schema["items"]
+        if isinstance(items_s, dict):
+            for idx, item in enumerate(val):
+                errs.extend(validate_value(item, items_s, f"{path}[{idx}]"))
+        elif isinstance(items_s, list):
+            for idx, sub_s in enumerate(items_s):
+                if idx < len(val):
+                    errs.extend(validate_value(val[idx], sub_s, f"{path}[{idx}]"))
+    if isinstance(val, dict):
+        props = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+        req = schema.get("required") if isinstance(schema.get("required"), list) else []
+        for rk in req:
+            if rk not in val or val[rk] is None:
+                errs.append(f"{path}.{rk}: missing required nested field")
+        for pk, pschema in props.items():
+            if pk in val and val[pk] is not None:
+                errs.extend(validate_value(val[pk], pschema, f"{path}.{pk}"))
+    return errs
+
+
+def get_subfield(val, subfield):
+    if not subfield:
+        return True, val
+    cur = val
+    for part in str(subfield).split("."):
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        elif isinstance(cur, list) and part.isdigit() and 0 <= int(part) < len(cur):
+            cur = cur[int(part)]
+        else:
+            return False, None
+    return True, cur
 
 
 def norm_eq(s):
@@ -289,6 +407,146 @@ def resolve_path(p, bases):
     return None
 
 
+def _verify_target(val, evs, field_name, doc_full_norm):
+    """Verify a scalar/composite answer against its evidence list (used for top-level fields and subfields)."""
+    eqv = [e for e in evs if e["kind"] == "equation"]
+    tab = [e for e in evs if e["kind"] == "table_cell"]
+    txt = [e for e in evs if e["kind"] == "text"]
+    img = [e for e in evs if e["kind"] == "image_region"]
+    v = {"answer": val, "checks": {"value_equals_parsed_cell": None, "source_region_complete": None,
+                                   "needs_visual_check": False}, "reasons": []}
+    ans_bad = incomplete_reasons(val, "answer") if isinstance(val, str) else []
+    if eqv:
+        e = eqv[0]
+        if not e["ok"]:
+            v["verdict"], v["reasons"] = "evidence_unsupported", [e["reason"]]
+        else:
+            rec = [norm(e.get("expr_unicode") or ""), norm(e.get("expr_latex") or "")]
+            rec_eq = [norm_eq(e.get("expr_unicode") or ""), norm_eq(e.get("expr_latex") or "")]
+            matches = any(r and r in norm(str(val)) for r in rec) or any(r and r in norm_eq(str(val)) for r in rec_eq)
+            v["checks"]["value_equals_parsed_cell"] = matches
+            if not matches:
+                v["verdict"] = "value_mismatch"
+                v["reasons"] = ["answer does not contain the parser's transcription of this equation"]
+            elif e.get("transcription_status") == "auto":
+                v["verdict"] = "supported_by_equation_record"
+                v["reasons"] = ["answer equals the automatic transcription (no uncertain symbols were found); "
+                                f"crop {e.get('crop')} available for a visual check"]
+            else:
+                v["verdict"] = "equation_needs_visual_check"
+                v["checks"]["needs_visual_check"] = True
+                v["reasons"] = [f"transcription status {e.get('transcription_status')}: "
+                                + "; ".join(u.get("note") or str(u.get("glyph")) for u in (e.get("uncertain_symbols") or []))[:300]]
+    elif tab:
+        good = [e for e in tab if e["ok"] and same_value(val, e["cell_value"], _norm_of(e["_doc"], e["_q"]))]
+        if good:
+            e = good[0]
+            v["checks"]["value_equals_parsed_cell"] = True
+            v["checks"]["source_region_complete"] = e.get("source_region_complete")
+            v["cell"] = e["lookup"]
+            if e.get("completeness_reasons") or ans_bad:
+                v["verdict"] = "parsed_cell_incomplete"
+                v["reasons"] = e.get("completeness_reasons", []) + ans_bad
+                v["checks"]["needs_visual_check"] = True
+                v["review_location"] = e.get("review_location")
+            elif e.get("source_region_complete") is None:
+                v["verdict"] = "supported_by_parsed_cell_region_unchecked"
+                v["reasons"] = [e.get("region_note", "original region not checked")]
+                v["checks"]["needs_visual_check"] = True
+                v["review_location"] = e.get("review_location")
+            else:
+                v["verdict"] = "supported_by_table_cell"
+        else:
+            e = tab[0]
+            q = e.get("_q") or {}
+            v["checks"]["value_equals_parsed_cell"] = False
+            if not e["ok"]:
+                v["verdict"] = "evidence_unsupported"
+                v["reasons"] = [e["reason"]]
+            else:
+                v["verdict"] = "value_mismatch"
+                v["reasons"] = [f"answer {val!r} but the cited cell holds {e['cell_value']!r}"]
+            if q.get("status") == "ok":
+                doc = e["_doc"]
+                t = next(t for t in doc["tables"] if t["id"] == q["table_id"])
+                cols = table_query.columns_of(t)
+                other_c = [cols[ci]["name"] for ci, c in enumerate(t["rows"][q["row"]])
+                           if ci != q["col"] and c and same_value(val, c)]
+                nh = (t.get("header") or {}).get("n_header_rows", 1)
+                k0 = t.get("key_columns", [0])[0] if t.get("key_columns") else 0
+                other_r = [t["rows"][ri][k0] for ri in range(nh, len(t["rows"]))
+                           if ri != q["row"] and t["rows"][ri][q["col"]] and same_value(val, t["rows"][ri][q["col"]])]
+                if other_c:
+                    v["verdict"] = "column_mismatch"
+                    v["reasons"] = [f"answer {val!r} is in column(s) {other_c} of the cited row, not in the cited column "
+                                    f"{'/'.join(q['column_path'])} (which holds {q['value']!r})"]
+                elif other_r and v["verdict"] == "value_mismatch":
+                    v["verdict"] = "row_mismatch"
+                    v["reasons"] = [f"answer {val!r} is in the cited column but in row(s) {other_r[:5]}"]
+    elif txt:
+        ok_txt = [e for e in txt if e["ok"]]
+        if not ok_txt:
+            v["verdict"] = "evidence_unsupported"
+            v["reasons"] = ["no cited quote was found at its location"]
+        else:
+            joined = " ".join(e["quote"] for e in ok_txt)
+            an = values_in(val)
+            if isinstance(val, (dict, list)):
+                def _leaf_vals(obj):
+                    if isinstance(obj, dict):
+                        for vv in obj.values():
+                            yield from _leaf_vals(vv)
+                    elif isinstance(obj, list):
+                        for vv in obj:
+                            yield from _leaf_vals(vv)
+                    elif obj not in (None, ""):
+                        yield str(obj)
+                leaves = list(_leaf_vals(val))
+                nj = norm(joined)
+                present = (all(any(close(x, y) for y in values_in(joined)) for x in an) if an else False) or (bool(leaves) and all(norm(lf) in nj for lf in leaves if norm(lf)))
+            else:
+                present = all(any(close(x, y) for y in values_in(joined)) for x in an) if an else norm(str(val)) in norm(joined)
+            if present:
+                v["verdict"] = "string_match_only"
+                v["checks"]["needs_visual_check"] = True
+                multi = max(len(values_in(e["quote"])) for e in ok_txt)
+                v["reasons"] = ["answer string occurs in the verified quotes; meaning/attribution not checked"]
+                if an and multi > 1:
+                    v["reasons"].append(f"a quote holds {multi} numbers, so which one is meant is not verified (use table_cell evidence)")
+                if an and doc_full_norm:
+                    ftoks = [t for t in re.split(r"[^a-z0-9]+", field_name.lower())
+                             if len(t) >= 4 and t not in STOP_FIELD_TOKENS]
+                    nj = norm(joined)
+                    missing_kw = [t for t in ftoks if t not in nj and t in doc_full_norm]
+                    if missing_kw:
+                        v["checks"]["quote_keyword_mismatch"] = True
+                        v["reasons"].append(f"field keyword(s) {missing_kw} appear in the PDF but are absent from the cited quote")
+            else:
+                v["verdict"] = "value_not_in_evidence"
+                v["reasons"] = [f"answer {val!r} does not occur in any verified quote for this field"]
+        if ans_bad and v.get("verdict") == "string_match_only":
+            v["verdict"] = "answer_incomplete"
+            v["reasons"] += ans_bad
+    elif img:
+        levels = [e.get("provenance_level") for e in img]
+        v["checks"]["needs_visual_check"] = True
+        v["provenance_levels"] = levels
+        if any(l == "mismatch" for l in levels):
+            v["verdict"] = "image_provenance_mismatch"
+            v["reasons"] = [p for e in img for p in e.get("provenance_problems", [])]
+        elif all(l == "none" for l in levels):
+            v["verdict"] = "image_read_unbound"
+            v["reasons"] = ["no provenance record: the crop cannot be tied to the cited PDF page; transcription not verified"]
+        else:
+            v["verdict"] = "image_read_unverified"
+            v["reasons"] = ["crop is tied to the cited PDF page (" + ", ".join(sorted(set(levels))) +
+                            "); the value was read from the image and is not machine-checked"]
+    else:
+        v["verdict"] = "no_evidence"
+    v["needs_review"] = v["verdict"] in REVIEW_VERDICTS
+    return v
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -303,7 +561,7 @@ def main():
     with open(a.result, encoding="utf-8") as fh:
         res = json.load(fh)
     rdir = os.path.dirname(os.path.abspath(a.result))
-    parsed_dirs = a.parsed or [s.get("parsed_dir") for s in res.get("sources", []) if s.get("parsed_dir")]
+    parsed_dirs = a.parsed or [s.get("parsed_dir") for s in res.get("sources", []) if isinstance(s, dict) and s.get("parsed_dir")]
     parsed_dirs = [d for d in parsed_dirs if d and os.path.exists(os.path.join(d, "doc.json"))]
     if not parsed_dirs:  # moved result folder: look for parsed/<stem>/doc.json next to result.json
         parsed_dirs = [os.path.dirname(p) for p in glob.glob(os.path.join(rdir, "parsed", "*", "doc.json"))]
@@ -312,37 +570,50 @@ def main():
         with open(os.path.join(d, "doc.json"), encoding="utf-8") as fh:
             docs.append(json.load(fh))
     src = Sources(res, rdir, docs, a.pdf)
-    blocks, tables, pages, page_sizes = {}, {}, {}, {}
+    blocks_by_id, tables_by_id, pages_by_no, page_sizes = {}, {}, {}, {}
+    doc_text_chunks = []
     for d in docs:
+        dsha = (d.get("meta") or {}).get("sha256")
         for b in d.get("blocks", []) + d.get("headers_footers", []):
-            blocks[b["id"]] = blocks.get(b["id"], "") + " " + b["text"] + " " + (b.get("marked") or "")
-            pages.setdefault(b["page"], []).append(b["text"])
+            bt = b["text"] + " " + (b.get("marked") or "")
+            blocks_by_id.setdefault(b["id"], []).append((dsha, bt))
+            pages_by_no.setdefault(b["page"], []).append((dsha, b["text"]))
+            doc_text_chunks.append(b["text"])
         for t in d.get("tables", []):
-            tables[t["id"]] = " ".join(" ".join(c or "" for c in r) for r in t["rows"]) + " " + (t.get("caption") or "")
-            pages.setdefault(t["page"], []).append(tables[t["id"]])
+            tt = " ".join(" ".join(c or "" for c in r) for r in t["rows"]) + " " + (t.get("caption") or "")
+            tables_by_id.setdefault(t["id"], []).append((dsha, tt))
+            pages_by_no.setdefault(t["page"], []).append((dsha, tt))
+            doc_text_chunks.append(tt)
         for p in d.get("pages", []):
             page_sizes[p["page"]] = [p.get("width"), p.get("height")]
+    doc_full_norm = norm(" ".join(doc_text_chunks))
 
-    issues, details = [], []
-    if not res.get("case_id"):
+    issues, details, contract_gaps = [], [], []
+    if res.get("case_id") in (None, ""):
         issues.append({"code": "missing_case_id"})
     fields = res.get("_contract_fields") or [k for k in res if k not in META_KEYS]
+    req_fields = set(res["_contract_required"]) if isinstance(res.get("_contract_required"), list) else set(fields)
+    schema_map = res.get("_contract_schema") if isinstance(res.get("_contract_schema"), dict) else {}
     for f in fields:
         if f not in res:
             issues.append({"code": "missing_contract_field", "field": f})
+            if f in req_fields:
+                contract_gaps.append({"field": f, "code": "missing_contract_field", "detail": "required contract field missing"})
 
     by_field = {}
     n_quotes = n_quotes_ok = 0
     search_bases = [rdir] + parsed_dirs
     for path, e in iter_evidence(res):
         kind = ev_kind(e)
-        d = {"path": path, "field": ev_field(e), "kind": kind}
+        d = {"path": path, "field": ev_field(e), "subfield": e.get("subfield"), "kind": kind}
+        esrc = e.get("source_sha256")
+        doc_cands = ([doc for doc in docs if (doc.get("meta") or {}).get("sha256") == esrc] if esrc else []) or docs
         if kind == "table_cell":
             spec = e.get("table_id") or e.get("table")
             col = e["column"] if isinstance(e["column"], str) else "/".join(e["column"])
             rows = [f"{k}={v}" for k, v in (e.get("row") or {}).items()]
             q, qdoc = None, None
-            for doc in docs:
+            for doc in doc_cands:
                 q = table_query.query(doc, spec, rows, col)
                 if q["status"] == "ok":
                     qdoc = doc
@@ -381,7 +652,7 @@ def main():
                                         "hint": "crop with crop_region.py --page P --bbox x0,y0,x1,y1 and read it"}
         elif kind == "equation":
             num = str(e.get("equation"))
-            eqs = [x for d0 in docs for x in d0.get("equations", []) if str(x.get("number")) == num
+            eqs = [x for d0 in doc_cands for x in d0.get("equations", []) if str(x.get("number")) == num
                    and (e.get("page") is None or int(e["page"]) == x["page"])]
             if not eqs:
                 d.update(ok=False, reason=f"equation ({num}) not found on page {e.get('page')}")
@@ -405,12 +676,13 @@ def main():
             n_quotes += 1
             qt = e.get("quote") or e.get("text") or ""
             pg, bid, tid = e.get("page"), e.get("block_id"), e.get("table_id")
+            nqt = norm(qt)
             found = None
-            if bid and bid in blocks and norm(qt) in norm(blocks[bid]):
+            if bid and bid in blocks_by_id and any(nqt in norm(bt) for dsha, bt in blocks_by_id[bid] if not esrc or dsha == esrc):
                 found = f"block {bid}"
-            elif tid and tid in tables and norm(qt) in norm(tables[tid]):
+            elif tid and tid in tables_by_id and any(nqt in norm(tt) for dsha, tt in tables_by_id[tid] if not esrc or dsha == esrc):
                 found = f"table {tid}"
-            elif pg is not None and int(pg) in pages and norm(qt) in norm(" ".join(pages[int(pg)])):
+            elif pg is not None and int(pg) in pages_by_no and any(nqt in norm(pt) for dsha, pt in pages_by_no[int(pg)] if not esrc or dsha == esrc):
                 found = f"page {pg}"
             if not qt:
                 d.update(ok=False, reason="no quote")
@@ -418,7 +690,7 @@ def main():
                 n_quotes_ok += 1
                 d.update(ok=True, found_in=found)
             else:
-                elsewhere = next((k for k, v in blocks.items() if norm(qt) in norm(v)), None)
+                elsewhere = next((k for k, lst in blocks_by_id.items() if any(nqt in norm(bt) for dsha, bt in lst if not esrc or dsha == esrc)), None)
                 d.update(ok=False, reason=("quote exists but not at the cited location (found in " + elsewhere + ")")
                          if elsewhere else "quote not found in parsed PDF", quote=qt[:200])
             d["quote"] = qt
@@ -427,141 +699,88 @@ def main():
             issues.append({"code": "evidence_not_verifiable", "path": path, "detail": d.get("reason")})
         by_field.setdefault(d["field"], []).append(d)
 
-    unreported_txt = json.dumps(res.get("unreported", []), ensure_ascii=False)
+    unreported_list = res.get("unreported", []) if isinstance(res.get("unreported"), list) else []
+    unreported_txt = json.dumps(unreported_list, ensure_ascii=False)
     verdicts = {}
     for f in fields:
         val = res.get(f)
         evs = by_field.get(f, [])
-        if val in (None, "", [], {}):
-            verdicts[f] = {"verdict": "unreported_ok" if f in unreported_txt else "null_without_reason", "needs_review": False}
+        if f in META_KEYS:
+            # contract names a key the Skill maintains itself (case_id, status, evidence, sources, uncertainty...)
+            ok = f != "case_id" or (val is not None and val != "")
+            verdicts[f] = {"verdict": "meta_field" if ok else "null_without_reason", "needs_review": False,
+                           "reasons": ["maintained by the Skill scripts (identifier / status / evidence / provenance lists)"]}
+            if not ok:
+                issues.append({"code": "null_without_reason", "field": f, "detail": "case_id is empty"})
+                contract_gaps.append({"field": f, "code": "null_without_reason", "detail": "case_id is empty"})
             continue
-        eqv = [e for e in evs if e["kind"] == "equation"]
-        tab = [e for e in evs if e["kind"] == "table_cell"]
-        txt = [e for e in evs if e["kind"] == "text"]
-        img = [e for e in evs if e["kind"] == "image_region"]
-        v = {"answer": val, "checks": {"value_equals_parsed_cell": None, "source_region_complete": None,
-                                       "needs_visual_check": False}, "reasons": []}
-        ans_bad = incomplete_reasons(val, "answer") if isinstance(val, str) else []
-        if eqv:
-            e = eqv[0]
-            if not e["ok"]:
-                v["verdict"], v["reasons"] = "evidence_unsupported", [e["reason"]]
+        if val in (None, "", [], {}):
+            un_items = [u for u in unreported_list if isinstance(u, dict) and u.get("field") == f]
+            if un_items:
+                if any(u.get("kind") == "not_determined" for u in un_items):
+                    verdicts[f] = {"verdict": "not_determined", "needs_review": True,
+                                   "reasons": [u.get("reason") for u in un_items if u.get("reason")]}
+                else:
+                    verdicts[f] = {"verdict": "unreported_ok", "needs_review": False}
+            elif f in unreported_txt:
+                verdicts[f] = {"verdict": "unreported_ok", "needs_review": False}
+            elif f not in req_fields:
+                verdicts[f] = {"verdict": "optional_omitted", "needs_review": False,
+                               "reasons": ["optional contract field omitted"]}
             else:
-                rec = [norm(e.get("expr_unicode") or ""), norm(e.get("expr_latex") or "")]
-                rec_eq = [norm_eq(e.get("expr_unicode") or ""), norm_eq(e.get("expr_latex") or "")]
-                matches = any(r and r in norm(str(val)) for r in rec) or any(r and r in norm_eq(str(val)) for r in rec_eq)
-                v["checks"]["value_equals_parsed_cell"] = matches
-                if not matches:
-                    v["verdict"] = "value_mismatch"
-                    v["reasons"] = ["answer does not contain the parser's transcription of this equation"]
-                elif e.get("transcription_status") == "auto":
-                    v["verdict"] = "supported_by_equation_record"
-                    v["reasons"] = ["answer equals the automatic transcription (no uncertain symbols were found); "
-                                    f"crop {e.get('crop')} available for a visual check"]
+                verdicts[f] = {"verdict": "null_without_reason", "needs_review": False}
+                contract_gaps.append({"field": f, "code": "null_without_reason", "detail": "required contract field is empty without reason"})
+            if verdicts[f]["verdict"] in FAIL_VERDICTS:
+                issues.append({"code": verdicts[f]["verdict"], "field": f, "detail": "; ".join(verdicts[f].get("reasons", [])) or verdicts[f]["verdict"]})
+            continue
+
+        # Validate against contract type/nested schema if defined
+        f_schema = schema_map.get(f)
+        schema_errs = validate_value(val, f_schema, f) if f_schema else []
+        if schema_errs:
+            v = {"answer": val, "verdict": "contract_type_mismatch", "needs_review": False,
+                 "checks": {"value_equals_parsed_cell": None, "source_region_complete": None, "needs_visual_check": False},
+                 "reasons": schema_errs}
+            verdicts[f] = v
+            issues.append({"code": "contract_type_mismatch", "field": f, "detail": "; ".join(schema_errs)})
+            contract_gaps.append({"field": f, "code": "contract_type_mismatch", "detail": "; ".join(schema_errs)})
+            continue
+
+        sub_evs = [e for e in evs if e.get("subfield")]
+        if sub_evs:
+            by_sf = {}
+            for e in sub_evs:
+                by_sf.setdefault(e["subfield"], []).append(e)
+            sf_verdicts = {}
+            for sf, sevs in by_sf.items():
+                found_sf, sf_val = get_subfield(val, sf)
+                if not found_sf:
+                    sf_verdicts[sf] = {"verdict": "evidence_unsupported", "needs_review": False,
+                                       "checks": {}, "reasons": [f"subfield {sf!r} missing from answer"]}
                 else:
-                    v["verdict"] = "equation_needs_visual_check"
-                    v["checks"]["needs_visual_check"] = True
-                    v["reasons"] = [f"transcription status {e.get('transcription_status')}: "
-                                    + "; ".join(u.get("note") or str(u.get("glyph")) for u in (e.get("uncertain_symbols") or []))[:300]]
-        elif tab:
-            good = [e for e in tab if e["ok"] and same_value(val, e["cell_value"], _norm_of(e["_doc"], e["_q"]))]
-            if good:
-                e = good[0]
-                v["checks"]["value_equals_parsed_cell"] = True
-                v["checks"]["source_region_complete"] = e.get("source_region_complete")
-                v["cell"] = e["lookup"]
-                if e.get("completeness_reasons") or ans_bad:
-                    v["verdict"] = "parsed_cell_incomplete"
-                    v["reasons"] = e.get("completeness_reasons", []) + ans_bad
-                    v["checks"]["needs_visual_check"] = True
-                    v["review_location"] = e.get("review_location")
-                elif e.get("source_region_complete") is None:
-                    v["verdict"] = "supported_by_parsed_cell_region_unchecked"
-                    v["reasons"] = [e.get("region_note", "original region not checked")]
-                    v["checks"]["needs_visual_check"] = True
-                    v["review_location"] = e.get("review_location")
-                else:
-                    v["verdict"] = "supported_by_table_cell"
-            else:
-                e = tab[0]
-                q = e.get("_q") or {}
-                v["checks"]["value_equals_parsed_cell"] = False
-                if not e["ok"]:
-                    v["verdict"] = "evidence_unsupported"
-                    v["reasons"] = [e["reason"]]
-                else:
-                    v["verdict"] = "value_mismatch"
-                    v["reasons"] = [f"answer {val!r} but the cited cell holds {e['cell_value']!r}"]
-                if q.get("status") == "ok":
-                    doc = e["_doc"]
-                    t = next(t for t in doc["tables"] if t["id"] == q["table_id"])
-                    cols = table_query.columns_of(t)
-                    other_c = [cols[ci]["name"] for ci, c in enumerate(t["rows"][q["row"]])
-                               if ci != q["col"] and c and same_value(val, c)]
-                    nh = (t.get("header") or {}).get("n_header_rows", 1)
-                    k0 = t.get("key_columns", [0])[0] if t.get("key_columns") else 0
-                    other_r = [t["rows"][ri][k0] for ri in range(nh, len(t["rows"]))
-                               if ri != q["row"] and t["rows"][ri][q["col"]] and same_value(val, t["rows"][ri][q["col"]])]
-                    if other_c:
-                        v["verdict"] = "column_mismatch"
-                        v["reasons"] = [f"answer {val!r} is in column(s) {other_c} of the cited row, not in the cited column "
-                                        f"{'/'.join(q['column_path'])} (which holds {q['value']!r})"]
-                    elif other_r and v["verdict"] == "value_mismatch":
-                        v["verdict"] = "row_mismatch"
-                        v["reasons"] = [f"answer {val!r} is in the cited column but in row(s) {other_r[:5]}"]
-        elif txt:
-            ok_txt = [e for e in txt if e["ok"]]
-            if not ok_txt:
-                v["verdict"] = "evidence_unsupported"
-                v["reasons"] = ["no cited quote was found at its location"]
-            else:
-                joined = " ".join(e["quote"] for e in ok_txt)
-                an = values_in(val)
-                if isinstance(val, (dict, list)):
-                    def _leaf_vals(obj):
-                        if isinstance(obj, dict):
-                            for vv in obj.values():
-                                yield from _leaf_vals(vv)
-                        elif isinstance(obj, list):
-                            for vv in obj:
-                                yield from _leaf_vals(vv)
-                        elif obj not in (None, ""):
-                            yield str(obj)
-                    leaves = list(_leaf_vals(val))
-                    nj = norm(joined)
-                    present = (all(any(close(x, y) for y in values_in(joined)) for x in an) if an else False) or (bool(leaves) and all(norm(lf) in nj for lf in leaves if norm(lf)))
-                else:
-                    present = all(any(close(x, y) for y in values_in(joined)) for x in an) if an else norm(str(val)) in norm(joined)
-                if present:
-                    v["verdict"] = "string_match_only"
-                    v["checks"]["needs_visual_check"] = True
-                    multi = max(len(values_in(e["quote"])) for e in ok_txt)
-                    v["reasons"] = ["answer string occurs in the verified quotes; meaning/attribution not checked"]
-                    if an and multi > 1:
-                        v["reasons"].append(f"a quote holds {multi} numbers, so which one is meant is not verified (use table_cell evidence)")
-                else:
-                    v["verdict"] = "value_not_in_evidence"
-                    v["reasons"] = [f"answer {val!r} does not occur in any verified quote for this field"]
-            if ans_bad and v.get("verdict") == "string_match_only":
-                v["verdict"] = "answer_incomplete"
-                v["reasons"] += ans_bad
-        elif img:
-            levels = [e.get("provenance_level") for e in img]
-            v["checks"]["needs_visual_check"] = True
-            v["provenance_levels"] = levels
-            if any(l == "mismatch" for l in levels):
-                v["verdict"] = "image_provenance_mismatch"
-                v["reasons"] = [p for e in img for p in e.get("provenance_problems", [])]
-            elif all(l == "none" for l in levels):
-                v["verdict"] = "image_read_unbound"
-                v["reasons"] = ["no provenance record: the crop cannot be tied to the cited PDF page; transcription not verified"]
-            else:
-                v["verdict"] = "image_read_unverified"
-                v["reasons"] = ["crop is tied to the cited PDF page (" + ", ".join(sorted(set(levels))) +
-                                "); the value was read from the image and is not machine-checked"]
+                    sf_verdicts[sf] = _verify_target(sf_val, sevs, f"{f}.{sf}", doc_full_norm)
+            if isinstance(val, dict):
+                for k in val:
+                    if val[k] not in (None, "", [], {}) and k not in by_sf and not any(s.startswith(k + ".") for s in by_sf):
+                        whole_evs = [e for e in evs if not e.get("subfield")]
+                        if not whole_evs:
+                            sf_verdicts[k] = {"verdict": "no_evidence", "needs_review": False,
+                                              "checks": {}, "reasons": [f"subfield {k!r} has no evidence"]}
+            all_sf = list(sf_verdicts.values())
+            failing_sf = [sv for sv in all_sf if sv["verdict"] in FAIL_VERDICTS]
+            review_sf = [sv for sv in all_sf if sv.get("needs_review")]
+            chosen = failing_sf[0] if failing_sf else (review_sf[0] if review_sf else all_sf[0])
+            v = {
+                "answer": val,
+                "verdict": chosen["verdict"],
+                "needs_review": any(sv.get("needs_review") for sv in all_sf),
+                "checks": dict(chosen.get("checks") or {},
+                               quote_keyword_mismatch=any((sv.get("checks") or {}).get("quote_keyword_mismatch") for sv in all_sf)),
+                "reasons": [r for sv in all_sf for r in sv.get("reasons", [])],
+                "subfield_verdicts": {sf: sv["verdict"] for sf, sv in sf_verdicts.items()},
+            }
         else:
-            v["verdict"] = "no_evidence"
-        v["needs_review"] = v["verdict"] in REVIEW_VERDICTS
+            v = _verify_target(val, evs, f, doc_full_norm)
         verdicts[f] = v
         if v["verdict"] in FAIL_VERDICTS:
             issues.append({"code": v["verdict"], "field": f, "detail": "; ".join(v.get("reasons", []))})
@@ -569,6 +788,7 @@ def main():
     for d in details:
         d.pop("_q", None)
         d.pop("_doc", None)
+    review_reasons = {f: v.get("reasons", []) for f, v in verdicts.items() if v.get("needs_review") and v.get("reasons")}
     summary = {
         "checks_performed": {
             "quote_check": "cited quote occurs at cited block/table/page (whitespace, case and hyphenation insensitive)",
@@ -584,24 +804,28 @@ def main():
         "evidence_items": len(details), "evidence_ok": sum(1 for d in details if d["ok"]),
         "field_verdicts": verdicts,
         "needs_review": [f for f, v in verdicts.items() if v.get("needs_review")],
+        "review_reasons": review_reasons,
+        "contract_gaps": contract_gaps,
         "issues": issues, "parsed_docs": parsed_dirs,
         "evidence_checked": len(details), "evidence_verified": sum(1 for d in details if d["ok"]),
     }
     out = a.out or os.path.join(rdir, "verification.json")
-    with open(out, "w", encoding="utf-8") as fh:
-        json.dump({"summary": summary, "details": details}, fh, ensure_ascii=False, indent=1)
+    _atomic_write_json(out, {"summary": summary, "details": details})
     blocking = any(i["code"] in FAIL_VERDICTS or i["code"] in ("evidence_not_verifiable", "missing_contract_field", "missing_case_id")
                    for i in issues)
     if not blocking and res.get("status") == "pending_agent_fill":
-        res["status"] = "partial" if any(v.get("verdict") in ("image_read_unverified", "image_read_unbound") for v in verdicts.values()) else "success"
+        kw_mismatch = any((v.get("checks") or {}).get("quote_keyword_mismatch") for v in verdicts.values())
+        has_img = any(v.get("verdict") in ("image_read_unverified", "image_read_unbound") for v in verdicts.values())
+        res["status"] = "partial" if (has_img or kw_mismatch) else "success"
     res.pop("_contract_raw", None)
     res.pop("_fill_instructions", None)
     res["verification"] = {"evidence_items": len(details), "evidence_ok": summary["evidence_ok"],
                            "field_verdicts": {f: v["verdict"] for f, v in verdicts.items()},
                            "needs_review": summary["needs_review"],
+                           "review_reasons": review_reasons,
+                           "contract_gaps": contract_gaps,
                            "n_issues": len(issues), "report": os.path.basename(out)}
-    with open(a.result, "w", encoding="utf-8") as fh:
-        json.dump(res, fh, ensure_ascii=False, indent=1)
+    _atomic_write_json(a.result, res)
     print(json.dumps(summary, ensure_ascii=False, indent=1))
     sys.exit(1 if blocking else 0)
 

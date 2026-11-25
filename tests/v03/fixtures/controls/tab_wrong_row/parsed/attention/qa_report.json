@@ -1,0 +1,141 @@
+{
+ "status": "success",
+ "warnings": [],
+ "unresolved_pages": [],
+ "ocr_pages": [],
+ "stats": {
+  "n_blocks": 256,
+  "n_sections": 25,
+  "n_tables": 5,
+  "n_figures": 6,
+  "n_equations": 3,
+  "n_references": 40,
+  "n_footnotes": 4,
+  "n_headers_footers_removed": 298,
+  "n_dehyphenated": 10,
+  "n_cross_block_paragraph_joins": 16,
+  "seconds": 0.85
+ },
+ "pages": [
+  {
+   "page": 1,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 2836,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 2,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 4237,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 3,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 1817,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.146
+  },
+  {
+   "page": 4,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 2486,
+   "garbled_ratio": 0.0004,
+   "image_coverage": 0.063
+  },
+  {
+   "page": 5,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3162,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 6,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3455,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 7,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3301,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 8,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3170,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 9,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 2951,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 10,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3088,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 11,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3177,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 12,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 3180,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 13,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 725,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 14,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 668,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  },
+  {
+   "page": 15,
+   "source": "text_layer",
+   "n_columns": 1,
+   "text_layer_chars": 671,
+   "garbled_ratio": 0.0,
+   "image_coverage": 0.0
+  }
+ ]
+}

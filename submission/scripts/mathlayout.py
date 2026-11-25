@@ -25,6 +25,7 @@ import binascii
 import io
 import re
 import statistics
+import unicodedata
 from collections import Counter
 
 try:
@@ -65,6 +66,107 @@ GREEK = {"α": "\\alpha", "β": "\\beta", "γ": "\\gamma", "δ": "\\delta", "ε"
          "Σ": "\\Sigma", "Φ": "\\Phi", "Ψ": "\\Psi", "Ω": "\\Omega", "∑": "\\sum", "−": "-", "×": "\\times",
          "·": "\\cdot", "≤": "\\leq", "≥": "\\geq", "≠": "\\neq", "≈": "\\approx", "∈": "\\in", "∞": "\\infty",
          "∂": "\\partial", "∇": "\\nabla", "±": "\\pm", "→": "\\to", "∼": "\\sim", "√": "\\sqrt"}
+GREEK_CMD = {"ALPHA": "alpha", "BETA": "beta", "GAMMA": "gamma", "DELTA": "delta", "EPSILON": "varepsilon", "ZETA": "zeta",
+             "ETA": "eta", "THETA": "theta", "IOTA": "iota", "KAPPA": "kappa", "LAMDA": "lambda", "LAMBDA": "lambda", "MU": "mu",
+             "NU": "nu", "XI": "xi", "OMICRON": "o", "PI": "pi", "RHO": "rho", "SIGMA": "sigma", "TAU": "tau", "UPSILON": "upsilon",
+             "PHI": "varphi", "CHI": "chi", "PSI": "psi", "OMEGA": "omega"}
+GREEK_VAR = {"EPSILON SYMBOL": "epsilon", "LUNATE EPSILON SYMBOL": "epsilon", "THETA SYMBOL": "vartheta", "KAPPA SYMBOL": "varkappa", "PHI SYMBOL": "phi",
+             "RHO SYMBOL": "varrho", "PI SYMBOL": "varpi", "FINAL SIGMA": "varsigma"}
+GREEK_UPPER_CMD = {"GAMMA", "DELTA", "THETA", "LAMDA", "LAMBDA", "XI", "PI", "SIGMA", "UPSILON", "PHI", "PSI", "OMEGA"}
+RE_MATHNAME = re.compile(r"^MATHEMATICAL (BOLD )?(ITALIC )?(SANS-SERIF )?(?:(SMALL|CAPITAL) )?(.+)$")
+
+
+def _greek_cmd(case, name):
+    if name in GREEK_VAR:
+        return "\\" + GREEK_VAR[name]
+    if name not in GREEK_CMD:
+        return None
+    if case == "CAPITAL":
+        if name in GREEK_UPPER_CMD:
+            c = {"PHI": "phi"}.get(name, GREEK_CMD[name])
+            return "\\" + c[0].upper() + c[1:]
+        return {"ALPHA": "A", "BETA": "B", "EPSILON": "E", "ZETA": "Z", "ETA": "H", "IOTA": "I", "KAPPA": "K", "MU": "M",
+                "NU": "N", "OMICRON": "O", "RHO": "P", "TAU": "T", "CHI": "X"}.get(name)
+    return "\\" + GREEK_CMD[name]
+
+
+def latex_plain(tex):
+    r"""LaTeX with Unicode math letters spelled as LaTeX: 𝐿 -> L, 𝛼/α -> \alpha, 𝐱 -> \mathbf{x}, ∂ -> \partial.
+    Italic is the default math style, so italic letters become plain letters; bold keeps \mathbf."""
+    if not tex:
+        return tex
+    out, need_space = [], False
+    for ch in tex:
+        rep_ = None
+        o = ord(ch)
+        if o > 127:
+            try:
+                nm = unicodedata.name(ch)
+            except ValueError:
+                nm = ""
+            m = RE_MATHNAME.match(nm)
+            if ch == "ℎ":
+                rep_ = "h"
+            elif m:
+                bold, case, rest = m.group(1), m.group(4), m.group(5)
+                if len(rest) == 1 and rest.isalpha():
+                    letter = rest if case == "CAPITAL" else rest.lower()
+                    rep_ = f"\\mathbf{{{letter}}}" if bold else letter
+                elif rest.isdigit() or rest in ("DIGIT ZERO",):
+                    rep_ = None
+                else:
+                    g = _greek_cmd(case, rest.strip())
+                    if g is None and rest == "PARTIAL DIFFERENTIAL":
+                        g = "\\partial"
+                    elif g is None and rest == "NABLA":
+                        g = "\\nabla"
+                    if g:
+                        rep_ = f"\\boldsymbol{{{g}}}" if bold and g.startswith("\\") else g
+            elif nm == "PARTIAL DIFFERENTIAL":
+                rep_ = "\\partial"
+            elif nm == "NABLA":
+                rep_ = "\\nabla"
+            elif nm.startswith("GREEK SMALL LETTER ") or nm.startswith("GREEK CAPITAL LETTER "):
+                case = "SMALL" if "SMALL" in nm else "CAPITAL"
+                rest = nm.split("LETTER ", 1)[1]
+                if rest in GREEK_CMD:
+                    rep_ = _greek_cmd(case, rest)
+            elif nm.startswith("GREEK ") and nm[6:] in GREEK_VAR:
+                rep_ = "\\" + GREEK_VAR[nm[6:]]
+        if rep_ is None:
+            if need_space and (ch.isalpha() and ch.isascii()):
+                out.append(" ")
+            out.append(ch)
+            need_space = False
+        else:
+            # a command directly followed by a letter is separated ("\alphaB" would be one undefined command)
+            if rep_[0].isalpha() and (need_space or re.search(r"\\[A-Za-z]+$", "".join(out[-12:]))):
+                out.append(" ")
+            out.append(rep_)
+            need_space = rep_.startswith("\\") and rep_[-1].isalpha()
+    return RE_CMD.sub(_split_cmd, "".join(out))
+
+
+KNOWN_CMDS = set("""Delta Gamma Lambda Omega Phi Psi Sigma Theta Upsilon Xi Pi acute alpha approx backslash bar beta bigcap
+bigcup bigoplus bigotimes bigvee bigwedge boldsymbol breve cdot cdots ldots check chi coprod ddot delta dot epsilon
+varepsilon eta frac gamma geq grave hat in infty int iota kappa varkappa lambda langle lceil leftrightarrow leq lfloor
+mathbb mathbf mathcal mathfrak mathrm mu nabla neq nu o oint omega partial phi varphi pi varpi pm mp prod propto psi
+rangle rceil rfloor rho varrho sigma varsigma sim square sum tau theta vartheta tilde times to upsilon vec widehat
+widetilde xi zeta left right log exp max min sin cos tan tanh lim arg det sup inf ln quad star ast circ""".split())
+RE_CMD = re.compile(r"\\([A-Za-z]+)")
+
+
+def _split_cmd(m):
+    """'\\cdotmin' -> '\\cdot min': an unknown command that starts with a known one is a command glued to text."""
+    w = m.group(1)
+    if w in KNOWN_CMDS:
+        return m.group(0)
+    for k in range(len(w) - 1, 1, -1):
+        if w[:k] in KNOWN_CMDS:
+            return "\\" + w[:k] + " " + w[k:]
+    return m.group(0)
+
+
 FUNC_NAMES = ("log", "exp", "max", "min", "sin", "cos", "tan", "tanh", "lim", "arg", "det", "sup", "inf", "ln")
 RE_EQNUM = re.compile(r"^\(\s*((?:\d+\.)?\d+[a-z]?|[A-Z]\.?\d+)\s*\)$")
 RE_EQNUM_END = re.compile(r"\(\s*((?:\d+\.)?\d+[a-z]?|[A-Z]\.?\d+)\s*\)\s*$")
@@ -369,31 +471,49 @@ def linearize(chars, rules, uncertain, depth=0):
     main, baseline = _main_metrics(chars)
     items = []  # (x, kind, latex, unicode, level)
     used = set()
-    # radicals with a rule above their argument -> \sqrt{...}
-    for ri, r in enumerate(rules):
+    # horizontal rules, outermost (longest) first: a radical bar (a √ glyph ends where the bar starts) -> \sqrt{...},
+    # otherwise a bar with characters above and below -> \frac{..}{..}. Inner rules go to the recursive calls, so a
+    # radical inside a denominator (softmax(QK^T/√d_k)) stays inside the fraction.
+    pending = sorted(rules, key=lambda r: r[1] - r[0], reverse=True)
+    left = []
+    while pending:
+        r = pending.pop(0)
+        inside = lambda c: r[0] - 1 <= (c["bbox"][0] + c["bbox"][2]) / 2 <= r[1] + 1
         rad = next((c for c in chars if id(c) not in used and c["c"] == "√" and abs(c["bbox"][2] - r[0]) < 3), None)
         if rad:
-            arg = [c for c in chars if id(c) not in used and c is not rad and r[0] - 1 <= (c["bbox"][0] + c["bbox"][2]) / 2 <= r[1] + 1
+            arg = [c for c in chars if id(c) not in used and c is not rad and inside(c)
                    and c["bbox"][1] >= r[2] - 2 and c["bbox"][1] < r[2] + 2.5 * main]
+            inner = [x for x in pending if r[0] - 1 <= x[0] and x[1] <= r[1] + 1 and x[2] > r[2]]
+            pending = [x for x in pending if x not in inner]
             for c in arg + [rad]:
                 used.add(id(c))
-            lx, ux = linearize(arg, [x for j, x in enumerate(rules) if j != ri], uncertain, depth + 1)
+            lx, ux = linearize(arg, inner, uncertain, depth + 1)
             items.append((rad["bbox"][0], "atom", f"\\sqrt{{{lx}}}", f"√({ux})", 0))
-            rules = [x for j, x in enumerate(rules) if j != ri]
-            break
-    # fractions
-    for r in sorted(rules, key=lambda r: r[1] - r[0], reverse=True):
-        num = [c for c in chars if id(c) not in used and r[0] - 1 <= (c["bbox"][0] + c["bbox"][2]) / 2 <= r[1] + 1
-               and c["bbox"][3] <= r[2] + 1.5 and c["bbox"][3] > r[2] - 2.5 * main]
-        den = [c for c in chars if id(c) not in used and r[0] - 1 <= (c["bbox"][0] + c["bbox"][2]) / 2 <= r[1] + 1
-               and c["bbox"][1] >= r[2] - 1.5 and c["bbox"][1] < r[2] + 2.5 * main]
+            continue
+        # a radical sign's glyph box reaches above its own bar, so it is placed by its baseline
+        tall = lambda c: c["c"] == "√"
+        num = [c for c in chars if id(c) not in used and inside(c)
+               and (c["bbox"][3] <= r[2] + 1.5 and c["bbox"][3] > r[2] - 2.5 * main
+                    or tall(c) and r[2] - 2.5 * main < c["origin"][1] < r[2] - 0.5)]
+        den = [c for c in chars if id(c) not in used and inside(c)
+               and (c["bbox"][1] >= r[2] - 1.5 and c["bbox"][1] < r[2] + 2.5 * main
+                    or tall(c) and r[2] + 0.5 < c["origin"][1] < r[2] + 2.5 * main)]
         if num and den:
+            inner = [x for x in pending if r[0] - 1 <= x[0] and x[1] <= r[1] + 1 and abs(x[2] - r[2]) < 2.5 * main]
+            pending = [x for x in pending if x not in inner]
             for c in num + den:
                 used.add(id(c))
-            others = [x for x in rules if x is not r]
-            nl, nu = linearize(num, others, uncertain, depth + 1)
-            dl, du = linearize(den, others, uncertain, depth + 1)
+            nl, nu = linearize(num, [x for x in inner if x[2] < r[2]], uncertain, depth + 1)
+            dl, du = linearize(den, [x for x in inner if x[2] > r[2]], uncertain, depth + 1)
             items.append((r[0], "atom", f"\\frac{{{nl}}}{{{dl}}}", f"({nu})/({du})", 0))
+            continue
+        left.append(r)
+    for r in left:
+        # a bar that is neither a fraction nor a radical (overline, underline, a stray rule) is not transcribed
+        if any(r[0] - 1 <= (c["bbox"][0] + c["bbox"][2]) / 2 <= r[1] + 1 and abs(c["bbox"][1] - r[2]) < 1.5 * main
+               for c in chars if id(c) not in used):
+            uncertain.append({"note": f"horizontal rule at y={r[2]:.1f} (x {r[0]:.0f}-{r[1]:.0f}) is not explained as a "
+                                      "fraction or radical bar; an overline/fraction may be missing - check the crop"})
     rest = [c for c in chars if id(c) not in used]
     if not rest and items:
         items.sort(key=lambda t: t[0])
@@ -443,6 +563,8 @@ def linearize(chars, rules, uncertain, depth=0):
             lx, ux = "\\square", "□"
         elif c.get("latex_sym"):
             lx, ux = c["latex_sym"], c["c"]
+            if lx[-1:].isalpha():
+                lx += " "  # "\cdot min", not the undefined command "\cdotmin"
         else:
             lx, ux = char_style(c["c"], c["font"])
         if id(c) in accents:
@@ -603,7 +725,7 @@ def numbered_equations(doc, page, page_no, gutters):
             "bbox": [round(x0, 2), round(y0, 2), round(max(x1, nb[2]), 2), round(max(y1, nb[3]), 2)],
             "expr_bbox": [round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2)],
             "number_bbox": [round(v, 2) for v in nb],
-            "expr_latex": latex, "expr_unicode": uni,
+            "expr_latex": latex_plain(latex), "expr_unicode": uni,
             "uncertain_symbols": uncertain,
             "transcription_status": "auto" if not uncertain else "partial",
             "n_chars": len(eq_chars), "n_lines": len(reg),

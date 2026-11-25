@@ -38,7 +38,7 @@ try:
 except Exception:  # pragma: no cover - parsing still works without it
     mathlayout = None
 
-PARSER_VERSION = "0.3.0"
+PARSER_VERSION = "0.4.0"
 
 # ----------------------------------------------------------------- patterns
 RE_CAPTION = re.compile(
@@ -50,7 +50,8 @@ RE_HEAD_NUM = re.compile(
 )
 RE_HEAD_ROMAN = re.compile(r"^\s*([IVX]{1,5})\.\s+([A-Z][^\n]{0,120})$")
 RE_HEAD_ALPHA = re.compile(r"^\s*([A-H])\.\s+([A-Z][^\n]{0,100})$")
-RE_HEAD_APPX = re.compile(r"^\s*([A-Z](?:\.\d+)*)\s+([A-Z][^\n]{1,120})$")
+RE_HEAD_APPX = re.compile(r"^\s*([A-Z](?:\.\d+)*)\.?\s+([A-Z][^\n]{1,120})$")
+RE_HEAD_APPX_WORD = re.compile(r"^\s*(?:Appendix|APPENDIX|Supplementary\s+(?:Note|Section)|SUPPLEMENTARY\s+NOTE)\s+([A-Z]|\d+)(?:[\.:：]\s*|\s+[-–—]\s*|\s+)([A-Z][^\n]{1,120})$")
 RE_HEAD_CN = re.compile(r"^\s*(第[一二三四五六七八九十]+[章节]|[一二三四五六七八九十]+、)\s*(.{1,60})$")
 KNOWN_SECTIONS = re.compile(
     r"^\s*(abstract|introduction|background|related work|methods?|materials and methods|"
@@ -232,6 +233,8 @@ def join_lines(lines, key="text"):
         if re.search(r"[A-Za-z]{2,}-$", out) and re.match(r"^[a-z]", t):
             out = out[:-1] + t
             n += 1
+        elif re.search(r"[A-Za-z]{2,}-$", out) and re.match(r"^[A-Z][a-z]", t):
+            out = out + t  # compound split at the line end keeps its hyphen ("Batch-" + "Normalized")
         elif re.search(r"[一-鿿]$", out) and re.match(r"^[一-鿿]", t):
             out = out + t  # CJK: no space between wrapped lines
         else:
@@ -243,16 +246,35 @@ def heading_like(text):
     t = norm_ws(text)
     if not t or len(t) > 130:
         return None
-    for rx, kind in ((RE_HEAD_NUM, "numeric"), (RE_HEAD_ROMAN, "roman"), (RE_HEAD_ALPHA, "alpha"), (RE_HEAD_CN, "cn"), (RE_HEAD_APPX, "appendix")):
+    for rx, kind in ((RE_HEAD_APPX_WORD, "appendix_word"), (RE_HEAD_NUM, "numeric"), (RE_HEAD_ROMAN, "roman"), (RE_HEAD_ALPHA, "alpha"),
+                     (RE_HEAD_CN, "cn"), (RE_HEAD_APPX, "appendix")):
         m = rx.match(t)
         if m:
+            if kind != "cn" and not re.search(r"[A-Za-z]{2,}|[一-鿿]", m.group(2)):
+                continue  # "1 N", "2 x": a number followed by a symbol is not a heading
             if kind in ("appendix", "named", "numeric") and re.search(r"(\.\s*){3,}\s*\d+$|\s\d{1,3}$", t) and \
-                    not re.search(r"\b(19|20)\d\d$", t):
-                return None  # table-of-contents entry ("A Details ... 43")
+                    not re.search(r"\b(19|20)\d\d$", t) and not RE_LABEL_NUM_END.search(t):
+                return None  # table-of-contents entry ("A Details ... 43"), but not "Proof of Lemma 1"
             return kind, m.group(1), m.group(2)
     if KNOWN_SECTIONS.match(t):
         return "named", "", t
     return None
+
+
+RE_LABEL_NUM_END = re.compile(r"\b(Lemma|Theorem|Proposition|Corollary|Definition|Assumption|Experiment|Study|Phase|Task|"
+                              r"Part|Stage|Case|Step|Round|Day|Group|Level|Version|Setting|Scenario|Method|Model|"
+                              r"Example|Problem|Question|Hypothesis|Claim|Condition|Appendix|Section|Chapter)\s+\d{1,3}$", re.I)
+
+
+def visual_lines(lines):
+    """Number of printed lines: MuPDF may split one justified line into several 'lines' on the same baseline."""
+    n, last = 0, None
+    for ln in sorted(lines, key=lambda l: l["bbox"][1]):
+        y0, y1 = ln["bbox"][1], ln["bbox"][3]
+        if last is None or y0 > last[0] + 0.6 * (last[1] - last[0]):
+            n += 1
+            last = (y0, y1)
+    return n
 
 
 def make_block(page_no, lines, source="text_layer", conf=None):
@@ -348,8 +370,10 @@ def tesseract_langs():
         return exe, []
 
 
-def ocr_page(page, page_no, workdir, lang_pref, dpi=300):
+def ocr_page(page, page_no, workdir, lang_pref, dpi=300, budget_deadline=None):
     """OCR one page with the tesseract CLI. Returns (blocks, info dict)."""
+    if budget_deadline is not None and time.time() >= budget_deadline:
+        return [], {"ocr": "skipped", "reason": "cumulative time budget reached"}
     exe, langs = tesseract_langs()
     if not exe:
         return [], {"ocr": "unavailable", "reason": "tesseract executable not found on PATH"}
@@ -359,9 +383,10 @@ def ocr_page(page, page_no, workdir, lang_pref, dpi=300):
     img = os.path.join(workdir, f"ocr_p{page_no}.png")
     pix = page.get_pixmap(dpi=dpi, colorspace=fitz.csGRAY)
     pix.save(img)
+    timeout = 180 if budget_deadline is None else min(180.0, max(1.0, budget_deadline - time.time()))
     try:
         res = subprocess.run([exe, img, "stdout", "-l", lang, "--psm", "3", "tsv"],
-                             capture_output=True, text=True, timeout=180, encoding="utf-8", errors="replace")
+                             capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace")
     except Exception as e:
         return [], {"ocr": "failed", "reason": str(e)}
     scale = 72.0 / dpi
@@ -478,6 +503,84 @@ def page_image_and_regions(page, page_no, out_dir, dpi=150):
         for k, (x0, y0, x1, y1, ink) in enumerate(xy_cut_regions(mask, 72.0 / dpi)):
             regions.append({"id": f"p{page_no}-r{k + 1}", "page": page_no, "bbox": [x0, y0, x1, y1], "ink_ratio": ink})
     return rel, dpi, regions
+
+
+def raster_regions_without_text(page, page_no, blocks, pdf_path, pdf_sha, out_dir, lang="eng", dpi=170):
+    """Embedded raster images on a page that HAS a text layer but whose picture area holds (almost) no text:
+    a table/figure/equation pasted as an image. Their content is invisible to text extraction, so each one gets a
+    crop (with a provenance sidecar, usable directly as image_region evidence) and, if tesseract exists, OCR text
+    that is reported separately (never mixed into body text)."""
+    W, H = page.rect.width, page.rect.height
+    out = []
+    try:
+        infos = page.get_image_info()
+    except Exception:
+        return out
+    seen = []
+    tab_caps = [b["bbox"] for b in blocks if re.match(r"^\s*(Table|TABLE|Tab\.|表)\s*[A-Z]?\d*", b.get("text") or "")]
+    for im in infos:
+        r = fitz.Rect(im["bbox"]) & page.rect
+        if r.is_empty:
+            continue
+        near_tab_cap = any(
+            min(r.x1, cb[2]) - max(r.x0, cb[0]) > -20 and
+            min(abs(cb[3] - r.y0), abs(r.y1 - cb[1])) <= 140
+            for cb in tab_caps
+        )
+        if near_tab_cap:
+            if r.width < 45 or r.height < 20 or r.width * r.height < 0.004 * W * H:
+                continue
+        elif r.width < 90 or r.height < 45 or r.width * r.height < 0.04 * W * H:
+            continue
+        if r.width * r.height > 0.85 * W * H:
+            continue  # full-page scan: handled by the scanned-page path
+        if any(abs(r.x0 - q.x0) < 2 and abs(r.y0 - q.y0) < 2 and abs(r.x1 - q.x1) < 2 for q in seen):
+            continue
+        seen.append(r)
+        inside = sum(len(b["text"]) for b in blocks if bbox_center_in(b["bbox"], [r.x0, r.y0, r.x1, r.y1], pad=0))
+        if inside >= 40:
+            continue  # text layer covers the picture (vector-like figure labels or an OCR overlay)
+        mask, _ = ink_mask(page, 60, r)
+        ink = float(mask.mean()) if mask is not None else None
+        if ink is not None and ink < 0.004:
+            continue
+        bb = [round(v, 2) for v in (r.x0, r.y0, r.x1, r.y1)]
+        rec = {"id": f"p{page_no}-x{len(out) + 1}", "page": page_no, "bbox": bb, "text_layer_chars_inside": inside,
+               "ink_ratio": None if ink is None else round(ink, 4), "crop": None, "ocr_text": None,
+               "crop_command": f"crop_region.py PARSED --page {page_no} --bbox {','.join(str(v) for v in bb)}"}
+        out.append(rec)
+    return out
+
+
+def materialize_raster(page, rec, pdf_path, pdf_sha, out_dir, lang="eng", dpi=170, budget_deadline=None):
+    """Crop one raster region (provenance sidecar, same format as crop_region.py) and OCR it when tesseract exists."""
+    try:
+        import provenance
+        r = fitz.Rect(rec["bbox"])
+        cdir = os.path.join(out_dir, "crops")
+        os.makedirs(cdir, exist_ok=True)
+        name = f"p{rec['page']}_{int(r.x0)}_{int(r.y0)}_{int(r.x1)}_{int(r.y1)}_{dpi}.png"
+        cpath = os.path.join(cdir, name)
+        page.get_pixmap(dpi=dpi, clip=r).save(cpath)
+        provenance.write_sidecar(cpath, provenance.make_record(pdf_path, rec["page"], rec["bbox"], dpi, cpath, pdf_sha=pdf_sha))
+        rec["crop"], rec["dpi"] = f"crops/{name}", dpi
+    except Exception as ex:
+        rec["crop_error"] = str(ex)
+        return
+    if budget_deadline is not None and time.time() >= budget_deadline:
+        rec["ocr_error"] = "cumulative time budget reached"
+        return
+    exe, langs = tesseract_langs()
+    if exe:
+        timeout = 60 if budget_deadline is None else min(60.0, max(1.0, budget_deadline - time.time()))
+        try:
+            use = "+".join(l for l in lang.split("+") if l in langs) or "eng"
+            res = subprocess.run([exe, os.path.join(out_dir, rec["crop"]), "stdout", "-l", use, "--psm", "6"],
+                                 capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace")
+            rec["ocr_text"] = norm_ws(res.stdout) or None
+            rec["ocr_note"] = "tesseract on the crop; unverified OCR - check against the crop before citing"
+        except Exception as ex:
+            rec["ocr_error"] = str(ex)
 
 
 def page_is_scanned(page, text_blocks):
@@ -1485,13 +1588,30 @@ def classify_roles(ordered, body_size, page_heights, first_page_no):
                 b["role"], b["role_rule"] = "caption", f"caption prefix (Figure/Table/图/表 N) + {why}"
                 continue
         hl = heading_like(t)
-        short = len(b["lines"]) <= 2 and len(t) < 130
-        if hl and short and (b["bold"] or b["size"] > body_size * 1.05 or hl[0] in ("named", "roman", "cn")
-                             or (hl[0] == "numeric" and not SENT_END.search(t))):
+        nvis = visual_lines(b["lines"]) if b.get("lines") else 1
+        short = nvis <= 2 and len(t) < 130
+        tiny = b["size"] < body_size * 0.9 and not b["bold"]
+        if hl and short and not tiny and (b["bold"] or b["size"] > body_size * 1.05 or hl[0] in ("named", "roman", "cn", "appendix_word")
+                                          or (hl[0] == "numeric" and not SENT_END.search(t))):
             b["role"], b["role_rule"] = "heading", f"{hl[0]} heading pattern"
             b["heading"] = {"kind": hl[0], "number": hl[1], "title": norm_ws(hl[2])}
             if re.match(r"^\s*abstract", t, re.I) or re.match(r"^\s*摘\s*要", t):
                 seen_abstract = True
+            continue
+        # unnumbered heading set apart by style only (bold or larger, one printed line, own block):
+        # "Experimental Setup", "RELATED WORK". Not on page 1 above the abstract (author names, affiliations).
+        words = t.split()
+        if (nvis == 1 and 1 <= len(words) <= 10 and 3 <= len(t) <= 80 and re.match(r"^[A-Z]", t)
+                and not re.search(r"[\.,;:]$", t) and not re.search(r"\d{2,}|@|http|[=<>±×]", t)
+                and (seen_abstract or b["page"] != first_page_no)
+                and (b["bold"] and b["size"] >= body_size * 0.95 or b["size"] >= body_size * 1.15
+                     or (t.isupper() and len(t) >= 6 and b["size"] >= body_size * 0.95 and b["bold"]))
+                and sum(1 for w in words if w[:1].isupper() or w.lower() in STOP_IN_TITLE) >= 0.6 * len(words)
+                and i + 1 < len(ordered) and ordered[i + 1]["page"] == b["page"]
+                and ordered[i + 1]["role"] not in ("title", "table") and len(ordered[i + 1]["text"]) > 60
+                and 0 <= ordered[i + 1]["bbox"][1] - b["bbox"][3] < 3 * b["size"]):
+            b["role"], b["role_rule"] = "heading", "unnumbered heading: bold/larger single line followed by body text"
+            b["heading"] = {"kind": "styled", "number": "", "title": t, "size": b["size"]}
             continue
         if re.match(r"^\s*(abstract|摘\s*要)\s*[:：\.—-]", t, re.I) or (not seen_abstract and re.match(r"^\s*abstract\b", t, re.I)):
             b["role"], b["role_rule"] = "abstract", "starts with 'Abstract'"
@@ -1522,7 +1642,12 @@ def classify_roles(ordered, body_size, page_heights, first_page_no):
                     b["role"], b["role_rule"] = "author_affiliation", "between title and abstract on page 1"
 
 
+STOP_IN_TITLE = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "vs", "vs.", "via", "with"}
+
+
 def heading_level(h):
+    if h["kind"] == "appendix_word":
+        return 1
     if h["kind"] == "numeric":
         return h["number"].count(".") + 1
     if h["kind"] in ("roman", "named", "cn"):
@@ -1573,10 +1698,12 @@ def cache_key(sha, pages, ocr_mode, lang, preview):
     return f"{sha[:24]}_{hashlib.sha256(cfg.encode()).hexdigest()[:12]}", cfg
 
 
-def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+chi_sim", preview=False, cache_dir=None):
+def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+chi_sim", preview=False, cache_dir=None, budget_deadline=None):
     """Parse a PDF into out_dir. With cache_dir, a previous result for the same
     PDF content + parser version + options is copied instead of re-parsing."""
     t0 = time.time()
+    if isinstance(pages, str):
+        pages = parse_pages(pages)
     if cache_dir and os.path.exists(path):
         with open(path, "rb") as fh:
             sha = hashlib.sha256(fh.read()).hexdigest()
@@ -1590,7 +1717,7 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
             r["meta"]["cache"] = {"hit": True, "key": key, "config": json.loads(cfg), "seconds": round(time.time() - t0, 3)}
             write_json(os.path.join(out_dir, "doc.json"), r)
             return r
-        r = parse(path, out_dir, password, pages, ocr_mode, lang, preview, None)
+        r = parse(path, out_dir, password, pages, ocr_mode, lang, preview, None, budget_deadline=budget_deadline)
         if r.get("status") != "failed":
             r["meta"]["cache"] = {"hit": False, "key": key, "config": json.loads(cfg)}
             write_json(os.path.join(out_dir, "doc.json"), r)
@@ -1623,8 +1750,16 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
     except Exception:
         pass
     page_idx = list(range(doc.page_count))
-    if pages:
+    if pages is not None:
         page_idx = [p - 1 for p in pages if 1 <= p <= doc.page_count]
+        if not page_idx:
+            msg = f"requested pages {pages} outside 1..{doc.page_count}"
+            result = {"status": "failed", "error": "no_valid_pages", "message": msg, "meta": meta,
+                      "pages_parsed": [], "pages_not_parsed": list(range(1, doc.page_count + 1)),
+                      "warnings": [{"code": "no_valid_pages", "detail": msg}]}
+            write_json(os.path.join(out_dir, "doc.json"), result)
+            write_json(os.path.join(out_dir, "qa_report.json"), {"status": "failed", "error": "no_valid_pages", "message": msg})
+            return result
     pages_blocks, page_info, page_heights, all_tables, figures = [], [], [], [], []
     ocr_pages, need_ocr_unresolved = [], []
     for pi in page_idx:
@@ -1638,7 +1773,7 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
                 "image_coverage": round(img_frac, 3), "garbled_ratio": round(g, 4), "source": "text_layer"}
         if (scanned and ocr_mode == "auto") or ocr_mode == "force" or (g > 0.05 and ocr_mode == "auto"):
             reason = "no text layer (scanned)" if scanned else ("garbled font encoding" if g > 0.05 else "forced")
-            oblocks, oinfo = ocr_page(page, pno, os.path.join(out_dir, "_ocr"), lang)
+            oblocks, oinfo = ocr_page(page, pno, os.path.join(out_dir, "_ocr"), lang, budget_deadline=budget_deadline)
             info["ocr"] = oinfo
             info["ocr_reason"] = reason
             if oblocks:
@@ -1708,6 +1843,15 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
             except Exception:
                 pass
         info["n_figure_text_blocks"] = mark_figure_text(blocks, regions, W)
+        if info["source"] == "text_layer":
+            rr = raster_regions_without_text(page, pno, blocks, path, meta.get("sha256"), out_dir, lang=lang)
+            if rr:
+                info["raster_regions"] = rr
+                warnings.append({"page": pno, "code": "raster_content_not_in_text_layer",
+                                 "detail": f"{len(rr)} embedded image region(s) with no text layer inside "
+                                           f"({', '.join(x['id'] + ' bbox ' + str(x['bbox']) for x in rr)}); their content "
+                                           f"(table/figure/equation pasted as an image) is not in the extracted text. "
+                                           f"See pages[].raster_regions (crop / crop_command) and tables_as_images."})
         pages_blocks.append(blocks)
         page_info.append(info)
         page_heights.append(H)
@@ -1756,17 +1900,30 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         if b["role"] == "heading":
             h = b.get("heading") or {"kind": "named", "number": "", "title": norm_ws(b["text"])}
             lvl = heading_level(h)
+            if h["kind"] == "styled" and stack:
+                # unnumbered heading: level relative to the enclosing heading, by font size
+                top = stack[-1]
+                if top["_kind"] in ("styled", "named") and abs(b["size"] - top["_size"]) < 0.5:
+                    lvl = top["level"]  # same style as an unnumbered/named heading: sibling
+                elif b["size"] <= top["_size"] + 0.3:
+                    lvl = top["level"] + 1
+                else:
+                    lvl = max(1, top["level"] - (1 if top["_kind"] == "styled" else 0))
             while stack and stack[-1]["level"] >= lvl:
                 stack.pop()
             sec = {"id": f"s{len(sections) + 1}", "level": lvl, "number": h["number"] or None,
                    "title": h["title"], "page": b["page"], "block_id": b["id"],
-                   "parent": stack[-1]["id"] if stack else None, "rule": b["role_rule"]}
+                   "parent": stack[-1]["id"] if stack else None, "rule": b["role_rule"],
+                   "_kind": h["kind"], "_size": b["size"]}
             sections.append(sec)
             stack.append(sec)
             b["section_path"] = [s["title"] for s in stack]
         else:
             b["section_path"] = [s["title"] for s in stack]
             b["section_id"] = stack[-1]["id"] if stack else None
+    for sec in sections:
+        sec["kind"] = sec.pop("_kind")
+        sec.pop("_size", None)
     # numbering sanity check: report jumps such as 2 -> 4
     nums = [s["number"] for s in sections if s["number"] and re.match(r"^\d+$", s["number"])]
     for a, c in zip(nums, nums[1:]):
@@ -1787,7 +1944,16 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         if cands:
             c = min(cands, key=lambda c: min(abs(c["bbox"][3] - t["bbox"][1]), abs(c["bbox"][1] - t["bbox"][3])))
             t["caption"], t["caption_block"] = norm_ws(c["text"]), c["id"]
-    # cross-page table continuation
+    # cross-page table continuation: explicit "Table 2 (continued)" captions, then caption-less tables at a page top
+    def cap_number(cap):
+        m = RE_CAPTION.match(cap or "")
+        return (m.group(1)[:3].lower(), m.group(2)) if m else None
+    for k, c in enumerate(all_tables):
+        if c.get("caption") and re.search(r"\b(continued|cont\.|contd)\b|\(cont", c["caption"], re.I):
+            prev = [a for a in all_tables[:k] if a.get("caption") and not a.get("continued_from")
+                    and cap_number(a["caption"]) == cap_number(c["caption"])]
+            if prev:
+                c["continued_from"] = prev[-1]["id"]
     for a, c in zip(all_tables, all_tables[1:]):
         if c["page"] == a["page"] + 1 and c["n_cols"] == a["n_cols"] and not c["caption"]:
             Ha = page_h[a["page"]]
@@ -1801,6 +1967,30 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         if cands:
             c = min(cands, key=lambda c: abs(c["bbox"][1] - f["bbox"][3]))
             f["caption"], f["caption_block"] = norm_ws(c["text"]), c["id"]
+    # raster regions (pictures without text layer) next to a caption: "Table 3" pasted as an image
+    # crops are made at parse time for table-like / uncaptioned pictures (capped); captioned figures get crop_command
+    tables_as_images = []
+    n_crops = 0
+    for info in page_info:
+        for x in info.get("raster_regions", []) or []:
+            caps = [c for c in captions if c["page"] == info["page"]]
+            c = min(caps, key=lambda c: min(abs(c["bbox"][3] - x["bbox"][1]), abs(c["bbox"][1] - x["bbox"][3]))) if caps else None
+            if c is not None and min(abs(c["bbox"][3] - x["bbox"][1]), abs(c["bbox"][1] - x["bbox"][3])) > 60:
+                c = None
+            is_table = (c is not None and bool(re.match(r"^\s*(Table|TABLE|Tab\.|表)", c["text"]))
+                        and not any(t.get("caption_block") == c["id"] for t in all_tables))
+            if (is_table or c is None) and n_crops < 12:
+                materialize_raster(doc[x["page"] - 1], x, path, meta.get("sha256"), out_dir, lang=lang, budget_deadline=budget_deadline)
+                n_crops += 1
+            if c is None:
+                continue
+            x["caption"], x["caption_block"] = norm_ws(c["text"]), c["id"]
+            if is_table:
+                tables_as_images.append({"id": f"TI{len(tables_as_images) + 1}", "page": x["page"], "bbox": x["bbox"],
+                                         "caption": x["caption"], "caption_block": c["id"], "crop": x["crop"],
+                                         "region_id": x["id"], "ocr_text": x.get("ocr_text"),
+                                         "note": "table is an embedded image: no cells in the text layer; read the crop "
+                                                 "and cite it as image_region evidence (provenance sidecar next to the crop)"})
     # figure captions without a detected graphic still count as figure locations
     linked = {f.get("caption_block") for f in figures}
     for c in captions:
@@ -1872,7 +2062,8 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         status = "partial" if unc else "auto"
         equations.append({"block_id": b["id"], "block_ids": [b["id"]], "page": b["page"], "bbox": b["bbox"],
                           "number": b.get("equation_number"), "text": b["text"], "marked": b.get("marked") or b["text"],
-                          "latex": b.get("latex"), "unicode_math": b.get("unicode_math"), "math_fonts": b.get("math_fonts"),
+                          "latex": mathlayout.latex_plain(b.get("latex")) if mathlayout is not None else b.get("latex"),
+                          "unicode_math": b.get("unicode_math"), "math_fonts": b.get("math_fonts"),
                           "transcription_status": status if crop or status == "auto" else "crop_only",
                           "uncertain_symbols": [{"note": u} for u in unc], "crop": crop, "crop_bbox": crop_bbox,
                           "source": "single_block", "rule": b["role_rule"],
@@ -1898,7 +2089,8 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
             same_sec = p["section_id"] == b.get("section_id")
             between = [x["role"] for x in ordered_all[p["last_order"]:b["order"] - 1]]
             skippable = all(r in ("footnote", "caption", "table", "figure") for r in between)
-            if same_sec and p["role"] == b["role"] and not SENT_END.search(p["text"]) and re.match(r"^[a-z(\[,;]", t) \
+            contiguous_page = b["page"] - p["sources"][-1]["page"] <= 1
+            if contiguous_page and same_sec and p["role"] == b["role"] and not SENT_END.search(p["text"]) and re.match(r"^[a-z(\[,;]", t) \
                     and skippable:
                 joiner = "" if p["text"].endswith("-") and re.match(r"^[a-z]", t) else " "
                 text = (p["text"][:-1] if joiner == "" else p["text"]) + joiner + t
@@ -1925,6 +2117,10 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         status = "success"
     if any(w["code"] == "possible_garbled_text" for w in warnings):
         status = "partial" if status == "success" else status
+    pages_not_parsed = [i + 1 for i in range(doc.page_count) if i not in set(page_idx)]
+    if pages_not_parsed:
+        warnings.append({"code": "partial_page_selection",
+                         "detail": f"parsed pages {[i + 1 for i in page_idx]}; skipped pages {pages_not_parsed}"})
 
     for b in ordered_all + margin_all:
         b.pop("table_ref", None)
@@ -1942,6 +2138,7 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         "headers_footers": [slim(b) for b in margin_all],
         "paragraphs": paragraphs,
         "tables": all_tables,
+        "tables_as_images": tables_as_images,
         "figures": figures,
         "equations": equations,
         "footnotes": footnotes,
@@ -1949,6 +2146,8 @@ def parse(path, out_dir, password=None, pages=None, ocr_mode="auto", lang="eng+c
         "stats": {
             "n_blocks": len(ordered_all), "n_sections": len(sections), "n_tables": len(all_tables),
             "n_figures": len(figures), "n_equations": len(equations), "n_references": len(references),
+            "n_tables_as_images": len(tables_as_images),
+            "n_raster_regions_without_text": sum(len(p.get("raster_regions") or []) for p in page_info),
             "n_footnotes": len(footnotes), "n_headers_footers_removed": len(margin_all),
             "n_dehyphenated": sum(b["n_dehyphenated"] for b in ordered_all),
             "n_cross_block_paragraph_joins": sum(len(p["sources"]) - 1 for p in paragraphs),
@@ -2073,16 +2272,31 @@ def render_previews(doc, r, pdir, dpi=80):
 
 
 def parse_pages(spec):
-    if not spec:
+    if spec is None:
         return None
+    s = str(spec).strip()
+    if not s:
+        raise ValueError("empty page specification")
     out = []
-    for part in spec.split(","):
+    for raw in s.split(","):
+        part = raw.strip()
+        if not part:
+            raise ValueError(f"invalid page range: {spec!r}")
         if "-" in part:
-            a, b = part.split("-")
-            out.extend(range(int(a), int(b) + 1))
+            bits = part.split("-")
+            if len(bits) != 2 or not bits[0].strip().isdigit() or not bits[1].strip().isdigit():
+                raise ValueError(f"invalid page range: {part!r}")
+            a, b = int(bits[0].strip()), int(bits[1].strip())
+            if a < 1 or b < a:
+                raise ValueError(f"invalid page range: {part!r} (must be 1 <= start <= end)")
+            out.extend(range(a, b + 1))
         else:
+            if not part.isdigit() or int(part) < 1:
+                raise ValueError(f"invalid page number: {part!r}")
             out.append(int(part))
-    return out
+    if not out:
+        raise ValueError(f"no pages specified: {spec!r}")
+    return sorted(set(out))
 
 
 def main():
@@ -2099,8 +2313,28 @@ def main():
     ap.add_argument("--lang", default="eng+chi_sim")
     ap.add_argument("--preview", action="store_true", help="render PNG previews with block boxes")
     ap.add_argument("--cache", default=None, help="cache directory: reuse a result for the same PDF content, parser version and options")
+    ap.add_argument("--budget", type=float, default=None, help="cumulative OCR time budget in seconds")
     a = ap.parse_args()
-    r = parse(a.pdf, a.out, a.password, parse_pages(a.pages), a.ocr, a.lang, a.preview, a.cache)
+    try:
+        pages_arg = parse_pages(a.pages)
+    except ValueError as ex:
+        os.makedirs(a.out, exist_ok=True)
+        err_doc = {"status": "failed", "error": "invalid_pages", "message": str(ex),
+                   "meta": {"source_file": os.path.abspath(a.pdf), "parser": f"pdf-evidence parse_pdf.py {PARSER_VERSION}"}}
+        write_json(os.path.join(a.out, "doc.json"), err_doc)
+        write_json(os.path.join(a.out, "qa_report.json"), {"status": "failed", "error": "invalid_pages", "message": str(ex)})
+        print(json.dumps({"status": "failed", "out": os.path.abspath(a.out), "error": "invalid_pages", "message": str(ex)}, ensure_ascii=False))
+        sys.exit(2)
+    if a.budget is not None and a.budget <= 0:
+        os.makedirs(a.out, exist_ok=True)
+        msg = f"invalid --budget: {a.budget} (must be > 0)"
+        err_doc = {"status": "failed", "error": "invalid_budget", "message": msg,
+                   "meta": {"source_file": os.path.abspath(a.pdf), "parser": f"pdf-evidence parse_pdf.py {PARSER_VERSION}"}}
+        write_json(os.path.join(a.out, "doc.json"), err_doc)
+        print(json.dumps({"status": "failed", "out": os.path.abspath(a.out), "error": "invalid_budget", "message": msg}, ensure_ascii=False))
+        sys.exit(2)
+    deadline = (time.time() + a.budget) if a.budget is not None else None
+    r = parse(a.pdf, a.out, a.password, pages_arg, a.ocr, a.lang, a.preview, a.cache, budget_deadline=deadline)
     s = r.get("stats", {})
     print(json.dumps({"status": r["status"], "out": os.path.abspath(a.out), "error": r.get("error"),
                       "warnings": len(r.get("warnings", [])), **s}, ensure_ascii=False))

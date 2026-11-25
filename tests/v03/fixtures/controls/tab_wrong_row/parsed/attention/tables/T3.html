@@ -1,0 +1,89 @@
+<table>
+  <tr>
+    <th></th>
+    <th colspan="2">BLEU</th>
+    <th colspan="2">Training Cost (FLOPs)</th>
+  </tr>
+  <tr>
+    <th>Model</th>
+    <th></th>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+  <tr>
+    <th></th>
+    <th>EN-DE</th>
+    <th>EN-FR</th>
+    <th>EN-DE</th>
+    <th>EN-FR</th>
+  </tr>
+  <tr>
+    <td>ByteNet [18]</td>
+    <td>23.75</td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Deep-Att + PosUnk [39]</td>
+    <td></td>
+    <td>39.2</td>
+    <td></td>
+    <td>1.0 · 10^20</td>
+  </tr>
+  <tr>
+    <td>GNMT + RL [38]</td>
+    <td>24.6</td>
+    <td>39.92</td>
+    <td>2.3 · 10^19</td>
+    <td>1.4 · 10^20</td>
+  </tr>
+  <tr>
+    <td>ConvS2S [9]</td>
+    <td>25.16</td>
+    <td>40.46</td>
+    <td>9.6 · 10^18</td>
+    <td>1.5 · 10^20</td>
+  </tr>
+  <tr>
+    <td>MoE [32]</td>
+    <td>26.03</td>
+    <td>40.56</td>
+    <td>2.0 · 10^19</td>
+    <td>1.2 · 10^20</td>
+  </tr>
+  <tr>
+    <td>Deep-Att + PosUnk Ensemble [39]</td>
+    <td></td>
+    <td>40.4</td>
+    <td></td>
+    <td>8.0 · 10^20</td>
+  </tr>
+  <tr>
+    <td>GNMT + RL Ensemble [38]</td>
+    <td>26.30</td>
+    <td>41.16</td>
+    <td>1.8 · 10^20</td>
+    <td>1.1 · 10^21</td>
+  </tr>
+  <tr>
+    <td>ConvS2S Ensemble [9]</td>
+    <td>26.36</td>
+    <td>41.29</td>
+    <td>7.7 · 10^19</td>
+    <td>1.2 · 10^21</td>
+  </tr>
+  <tr>
+    <td>Transformer (base model)</td>
+    <td>27.3</td>
+    <td>38.1</td>
+    <td colspan="2">3.3 · 10^18</td>
+  </tr>
+  <tr>
+    <td>Transformer (big)</td>
+    <td>28.4</td>
+    <td>41.8</td>
+    <td colspan="2">2.3 · 10^19</td>
+  </tr>
+</table>

@@ -1,0 +1,41 @@
+{
+ "case_id": "attention",
+ "_contract_fields": [
+  "bleu",
+  "cost"
+ ],
+ "bleu": "27.3",
+ "cost": "2.3 × 10¹⁹ FLOPs",
+ "status": "success",
+ "unreported": [],
+ "uncertainty": [],
+ "conflicts": [],
+ "field_status": {
+  "bleu": "text_layer",
+  "cost": "text_layer"
+ },
+ "evidence": [
+  {
+   "field": "bleu",
+   "type": "table_cell",
+   "table": "Table 2",
+   "page": 8,
+   "row": {
+    "Model": "Transformer (base model)"
+   },
+   "column": "BLEU/EN-FR",
+   "value": "38.1"
+  },
+  {
+   "field": "cost",
+   "type": "table_cell",
+   "table": "Table 2",
+   "page": 8,
+   "row": {
+    "Model": "Transformer (big)"
+   },
+   "column": "Training Cost (FLOPs)",
+   "value": "2.3 · 10^19"
+  }
+ ]
+}

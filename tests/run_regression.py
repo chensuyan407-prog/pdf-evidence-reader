@@ -157,6 +157,10 @@ def verifier_checks(R, S, parsed_gpt3, out):
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # GBK consoles cannot print the math glyphs in check names
+    except Exception:
+        pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--skill", required=True)
     ap.add_argument("--label", required=True)

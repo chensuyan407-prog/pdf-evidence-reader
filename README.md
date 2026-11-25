@@ -4,7 +4,7 @@ An Agent Skill for reading scientific PDFs with evidence: layout-aware parsing w
 tables you can query by row and column names, numbered equations you can fetch by number, and a verifier that
 checks every answer against the parsed structure **and the original PDF region** before it is handed in.
 
-Built for the Bohrium Playground challenge “阅读01｜文献文档解析” (`product-arena-08-3027d350`). Current version: **v0.3.0**.
+Built for the Bohrium Playground challenge “阅读01｜文献文档解析” (`product-arena-08-3027d350`). Current version: **v0.4.0**.
 
 ## What it does
 
@@ -36,6 +36,8 @@ for the agent workflow, evidence formats and verdicts, and [`submission/README.m
 
 All numbers below come from local runs; see the reports for exact inputs, evidence paths and failures.
 
+- [`ITERATION_REPORT_v0.4.md`](ITERATION_REPORT_v0.4.md) — v0.3.1 → v0.4.0: section recovery on real papers, picture-only and continued tables,
+  fraction/radical fix (a false `auto` in v0.3.1), LaTeX normalisation, and the `fill_result.py` workflow; v0.4 suite 67/67 (v0.3.1: 9/47 on the same checks).
 - [`ITERATION_REPORT_v0.3.md`](ITERATION_REPORT_v0.3.md) — v0.2 → v0.3 on the second review's cases (Attention Table 2, GloVe eq. (8), scanned Hubble 1929):
   final answers 3/6 → 6/6; wrong answers accepted as supported in 15 negative controls 2 → 0;
   held-out papers chosen and hashed before coding (Kaplan et al. 2020, Batch Norm) and Chinchilla as regression, with failures kept as measured.

@@ -1,0 +1,25 @@
+{
+ "provenance_version": 1,
+ "tool": "crop_region.py",
+ "source_sha256": "6f9c3879b4b95b39ce8f38a51ecd9d10e3da41ac3dd785cfd27ba84a778cecbb",
+ "source_name": "hubble.pdf",
+ "page": 2,
+ "page_count": 6,
+ "page_size": [
+  471.36,
+  725.52
+ ],
+ "bbox": [
+  48.0,
+  128.0,
+  386.0,
+  474.0
+ ],
+ "dpi": 150,
+ "crop_file": "p2_48_128_386_474_150.png",
+ "crop_sha256": "0ace3c3a1f860dd8c48fc41bf530ef14a37633c383edd9df3ed7b21711e41182",
+ "crop_px": [
+  705,
+  722
+ ]
+}

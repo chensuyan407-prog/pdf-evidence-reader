@@ -11,10 +11,17 @@ Usage:
 --col is a header path, parts separated by "/"; each part must equal one
 header element of the column, in order (e.g. "Zero-Shot/13B" or "13B").
 
-Prints JSON: status (ok | table_not_found | row_not_found | row_ambiguous |
+    python table_query.py PARSED_DIR --table "Table 2" --markdown     # whole table as Markdown (+ continuation parts)
+
+Prints JSON: status (ok | table_not_found | table_is_image | row_not_found | row_ambiguous |
 col_not_found | col_ambiguous), value, page, table_id, row, col,
 column_path, row_key, cell_bbox, caption. Exit code 0 only when status=ok.
+A table continued on the next page ("Table 2 (continued)") is searched as one table;
+`part` names the piece the row was found in. On a miss, `did_you_mean` lists the closest
+row labels / column names. table_is_image: the table is a picture without text layer - read
+the returned crop (it has a provenance sidecar) and cite it as image_region evidence.
 """
+import difflib
 import argparse
 import json
 import os
@@ -44,8 +51,41 @@ def find_table(doc, spec):
         c = [t for t in tabs if t["page"] == pg]
         return c[0] if len(c) == 1 else None
     key = _n(spec)
-    c = [t for t in tabs if _n(t.get("caption")).startswith(key) and not _n(t.get("caption")).endswith("(continued)")]
+    c = [t for t in tabs if _n(t.get("caption")).startswith(key) and not t.get("continued_from")
+         and not _n(t.get("caption")).endswith("(continued)") and _caption_label_ok(t.get("caption"), key)]
     return c[0] if c else None
+
+
+def _caption_label_ok(caption, key):
+    """'Table 1' must not match 'Table 12: ...'."""
+    rest = _n(caption)[len(key):]
+    return not (key[-1:].isdigit() and rest[:1].isdigit())
+
+
+def parts_of(doc, t):
+    """The table followed by its continuation pieces on later pages."""
+    out, cur = [t], t
+    while True:
+        nxt = next((x for x in doc.get("tables", []) if x.get("continued_from") == cur["id"]), None)
+        if nxt is None or nxt in out:
+            return out
+        out.append(nxt)
+        cur = nxt
+
+
+def image_table(doc, spec):
+    key = _n(spec or "")
+    for t in doc.get("tables_as_images", []) or []:
+        if t.get("id") == spec or (key and _n(t.get("caption")).startswith(key) and _caption_label_ok(t.get("caption"), key)):
+            return t
+    return None
+
+
+def _close(word, options, n=5):
+    opts = [o for o in options if o]
+    hits = difflib.get_close_matches(word, opts, n=n, cutoff=0.5)
+    hits += [o for o in opts if _n(word) and _n(word) in _n(o) and o not in hits]
+    return hits[:n]
 
 
 def columns_of(t):
@@ -82,8 +122,52 @@ def match_col_path(cols, spec):
 def query(doc, table, rows, col):
     t = find_table(doc, table)
     if t is None:
+        im = image_table(doc, table)
+        if im:
+            return {"status": "table_is_image", "table": table, "table_id": im["id"], "page": im["page"],
+                    "bbox": im["bbox"], "crop": im.get("crop"), "caption": im.get("caption"), "ocr_text": im.get("ocr_text"),
+                    "next_step": "read the crop (parsed dir + crop path) and record image_region evidence with its "
+                                 "provenance sidecar; field_status = image_read"}
         return {"status": "table_not_found", "table": table,
-                "available": [(x["id"], x["page"], x.get("caption")) for x in doc.get("tables", [])]}
+                "available": [(x["id"], x["page"], x.get("caption")) for x in doc.get("tables", [])],
+                "available_as_images": [(x["id"], x["page"], x.get("caption")) for x in doc.get("tables_as_images", []) or []]}
+    parts = parts_of(doc, t)
+    if len(parts) == 1:
+        return _query_one(t, rows, col)
+    results = []
+    for k, part in enumerate(parts):
+        r = _query_one(part if k == 0 else _with_columns_of(part, t), rows, col)
+        r["part"] = part["id"]
+        results.append(r)
+    ok = [r for r in results if r["status"] == "ok"]
+    if len(ok) == 1:
+        ok[0]["table_parts"] = [p["id"] for p in parts]
+        return ok[0]
+    if len(ok) > 1:
+        return {"status": "row_ambiguous", "table_id": t["id"], "page": t["page"], "caption": t.get("caption"),
+                "conditions": rows, "candidates": [{"part": r["part"], "page": r["page"], "value": r["value"]} for r in ok],
+                "reason": "the row matches in several pieces of a continued table"}
+    first = results[0]
+    first["table_parts"] = [p["id"] for p in parts]
+    if first["status"] == "row_not_found":
+        labels = [x for r in results for x in (r.get("did_you_mean") or [])]
+        first["did_you_mean"] = list(dict.fromkeys(labels))[:8]
+    return first
+
+
+def _with_columns_of(part, main):
+    """A continuation piece is read with the main table's columns (its own header row, if repeated, is skipped)."""
+    mcols = columns_of(main)
+    if part.get("n_cols") != main.get("n_cols") or [c["name"] for c in columns_of(part)] == [c["name"] for c in mcols]:
+        return part
+    leaf = [_n(c["path"][-1] if c["path"] else "") for c in mcols]
+    repeated = bool(part["rows"]) and [_n(c) for c in part["rows"][0]] == leaf
+    q = dict(part, columns=mcols, key_columns=main.get("key_columns", part.get("key_columns", [0])))
+    q["header"] = dict(part.get("header") or {}, n_header_rows=1 if repeated else 0)
+    return q
+
+
+def _query_one(t, rows, col):
     cols = columns_of(t)
     nh = (t.get("header") or {}).get("n_header_rows", 1)
     body = list(range(nh, len(t["rows"])))
@@ -95,14 +179,15 @@ def query(doc, table, rows, col):
         kc = [c for c in cols if col_matches_key(c, k)]
         if not kc:
             return {"status": "row_not_found", "reason": f"no column named {k!r}", "columns": [c["name"] for c in cols],
-                    "table_id": t["id"], "page": t["page"]}
+                    "did_you_mean": _close(k, [c["name"] for c in cols]), "table_id": t["id"], "page": t["page"]}
         conds.append((kc[0]["index"], _n(v), k, v))
     def cell_is(text, v):  # a trailing footnote marker ("Baseline^a") does not change the label
         return _n(text) == v or _n(re.sub(r"\^\S+$", "", text or "")) == v
     cand = [ri for ri in body if all(cell_is(t["rows"][ri][ci], v) for ci, v, _, _ in conds)]
     base = {"table_id": t["id"], "page": t["page"], "caption": t.get("caption")}
     if not cand:
-        return dict(base, status="row_not_found", conditions=rows)
+        labels = [t["rows"][ri][conds[0][0]] for ri in body] if conds else []
+        return dict(base, status="row_not_found", conditions=rows, did_you_mean=_close(conds[0][3], labels) if conds else [])
     if len(cand) > 1:
         return dict(base, status="row_ambiguous", conditions=rows,
                     candidates=[[t["rows"][ri][ci] for ci in t.get("key_columns", [0])] for ri in cand])
@@ -120,7 +205,9 @@ def query(doc, table, rows, col):
             return dict(base, status="col_ambiguous", column=col, candidates=[c["name"] for c in grp],
                         reason="group header covers several columns that hold different cells in this row")
     if not ch:
-        return dict(base, status="col_not_found", column=col, columns=[c["name"] for c in cols])
+        names = [c["name"] for c in cols]
+        return dict(base, status="col_not_found", column=col, columns=names,
+                    did_you_mean=_close(col, names + ["/".join(c["path"]) for c in cols]))
     if len(ch) > 1:
         return dict(base, status="col_ambiguous", column=col, candidates=[c["name"] for c in ch])
     ci = ch[0]["index"]
@@ -163,19 +250,44 @@ def main():
     ap.add_argument("--row", action="append", default=[])
     ap.add_argument("--col", default=None)
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--markdown", action="store_true", help="print the whole table (all continuation parts) as Markdown")
     a = ap.parse_args()
     doc = load(a.parsed)
+    if a.markdown:
+        t = find_table(doc, a.table)
+        if t is None:
+            print(json.dumps(query(doc, a.table, [], ""), ensure_ascii=False, indent=1))
+            sys.exit(1)
+        esc = lambda c: (c if c is not None else "").replace("|", "\\|")
+        for part in parts_of(doc, t):
+            if not part["rows"]:
+                continue
+            print(f"<!-- {part['id']} page {part['page']} bbox {part.get('bbox')} caption: {part.get('caption')} -->")
+            print("| " + " | ".join(esc(c) for c in part["rows"][0]) + " |")
+            print("|" + "---|" * len(part["rows"][0]))
+            for r in part["rows"][1:]:
+                print("| " + " | ".join(esc(c) for c in r) + " |")
+            print()
+        return
     if a.list:
         t = find_table(doc, a.table)
         if t is None:
-            print(json.dumps({"status": "table_not_found"}, ensure_ascii=False))
+            print(json.dumps(query(doc, a.table, [], ""), ensure_ascii=False, indent=1))
             sys.exit(1)
-        nh = (t.get("header") or {}).get("n_header_rows", 1)
         keys = t.get("key_columns", [0])
+        parts = parts_of(doc, t)
+        row_keys = []
+        for k, part in enumerate(parts):
+            q = part if k == 0 else _with_columns_of(part, t)
+            nh = (q.get("header") or {}).get("n_header_rows", 1)
+            row_keys += [[q["rows"][ri][kk] for kk in keys if kk < len(q["rows"][ri])] for ri in range(nh, len(q["rows"]))]
+        cols = columns_of(t)
         print(json.dumps({"table_id": t["id"], "page": t["page"], "caption": t.get("caption"),
-                          "columns": [c["name"] for c in columns_of(t)],
-                          "row_keys": [[t["rows"][ri][k] for k in keys] for ri in range(nh, len(t["rows"]))]},
-                         ensure_ascii=False, indent=1))
+                          "parts": [[p["id"], p["page"]] for p in parts],
+                          "columns": [c["name"] for c in cols],
+                          "column_paths": ["/".join(c["path"]) for c in cols],
+                          "row_key_columns": [cols[k]["name"] for k in keys if k < len(cols)],
+                          "row_keys": row_keys}, ensure_ascii=False, indent=1))
         return
     r = query(doc, a.table, a.row, a.col or "")
     print(json.dumps(r, ensure_ascii=False, indent=1))

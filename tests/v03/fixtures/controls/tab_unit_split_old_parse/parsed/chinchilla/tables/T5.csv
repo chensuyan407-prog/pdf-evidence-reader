@@ -1,0 +1,7 @@
+,# Tasks,Examples
+Language Modelling,20,"WikiText-103, The Pile: PG-19, arXiv, FreeLaw, . . ."
+Reading Comprehension,3,"RACE-m, RACE-h, LAMBADA"
+Question Answering,3,"Natural Questions, TriviaQA, TruthfulQA"
+Common Sense,5,"HellaSwag, Winogrande, PIQA, SIQA, BoolQ"
+MMLU,57,"High School Chemistry, Astronomy, Clinical Knowledge, . . ."
+BIG-bench,"62 Sequences,","Causal Judgement, Epistemic Reasoning, Temporal . . ."

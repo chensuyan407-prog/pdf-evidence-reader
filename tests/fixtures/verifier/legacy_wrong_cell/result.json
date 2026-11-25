@@ -1,0 +1,151 @@
+{
+ "case_id": "gpt3",
+ "zero_acc": "999",
+ "one_ppl": "4.61",
+ "status": "success",
+ "sources": [
+  {
+   "file": "D:\\application\\2026-11-21\\grader-prompt-md-100-bundle-submission\\outputs\\grading\\cases\\gpt3\\paper.pdf",
+   "sha256": "97fd272f1fdfc18677462d0292f5fbf26ca86b4d1b485c2dba03269b643a0e83",
+   "parsed_dir": "D:\\application\\2026-11-21\\grader-prompt-md-100-bundle-submission\\outputs\\grading\\runs\\gpt3\\B\\parsed\\paper",
+   "parse_status": "success",
+   "parse_error": null,
+   "page_count": 75,
+   "unresolved_pages": [],
+   "ocr_pages": [],
+   "warnings": [],
+   "stats": {
+    "n_blocks": 1031,
+    "n_sections": 44,
+    "n_tables": 35,
+    "n_figures": 90,
+    "n_equations": 1,
+    "n_references": 267,
+    "n_footnotes": 10,
+    "n_headers_footers_removed": 75,
+    "n_dehyphenated": 13,
+    "n_cross_block_paragraph_joins": 35,
+    "seconds": 3.21
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "zero_acc",
+   "page": 63,
+   "block_id": "p63-b2",
+   "quote": "Zero-Shot One-Shot Few-Shot",
+   "bbox": [
+    227.21,
+    104.8,
+    490.21,
+    110.77
+   ],
+   "section": "Appendix H, Table H.1"
+  },
+  {
+   "claim": "zero_acc",
+   "page": 63,
+   "block_id": "p63-b6",
+   "quote": "Small Med Large XL 2.7B 6.7B 13B 175B",
+   "bbox": [
+    136.63,
+    122.92,
+    533.15,
+    128.9
+   ],
+   "section": "Appendix H, Table H.1"
+  },
+  {
+   "claim": "zero_acc",
+   "page": 63,
+   "block_id": "p63-b7",
+   "quote": "HellaSwag acc dev 85.6 20 33.7 43.6 51.0 54.7 62.8 67.4 70.9 78.9 33.0 42.9 50.5 53.5 61.9 66.5 70.0 78.1 33.5 43.1 51.3 54.9 62.9 67.3 71.3 79.3",
+   "bbox": [
+    48.07,
+    134.89,
+    530.66,
+    161.79
+   ],
+   "section": "Appendix H, Table H.1"
+  },
+  {
+   "claim": "one_ppl",
+   "page": 63,
+   "block_id": "p63-b2",
+   "quote": "Zero-Shot One-Shot Few-Shot",
+   "bbox": [
+    227.21,
+    104.8,
+    490.21,
+    110.77
+   ],
+   "section": "Appendix H, Table H.1"
+  },
+  {
+   "claim": "one_ppl",
+   "page": 63,
+   "block_id": "p63-b6",
+   "quote": "Small Med Large XL 2.7B 6.7B 13B 175B",
+   "bbox": [
+    136.63,
+    122.92,
+    533.15,
+    128.9
+   ],
+   "section": "Appendix H, Table H.1"
+  },
+  {
+   "claim": "one_ppl",
+   "page": 63,
+   "block_id": "p63-b7",
+   "quote": "LAMBADA ppl test 8.63 15 18.6 9.09 6.53 5.44 4.60 4.00 3.56 3.00 165.0 11.6 8.29 6.46 5.53 4.61 4.06 3.35 165.0 27.6 6.63 7.45 2.89 2.56 2.56 1.92",
+   "bbox": [
+    48.07,
+    134.89,
+    530.66,
+    161.79
+   ],
+   "section": "Appendix H, Table H.1"
+  }
+ ],
+ "uncertainty": [
+  "T35 仅含表头。按 p63-b2、b6 的三组各八列顺序，在 b7 的数据行内计数。"
+ ],
+ "unreported": [],
+ "conflicts": [],
+ "run_status": {
+  "parse_seconds": 6.91,
+  "case_error": null,
+  "n_pdfs": 1,
+  "task_file": "D:\\application\\2026-11-21\\grader-prompt-md-100-bundle-submission\\outputs\\grading\\cases\\gpt3\\task.md",
+  "reason": "所问字段已从解析输出提取，限制见 uncertainty"
+ },
+ "change_log": [
+  {
+   "step": "parse",
+   "file": "D:\\application\\2026-11-21\\grader-prompt-md-100-bundle-submission\\outputs\\grading\\cases\\gpt3\\paper.pdf",
+   "status": "success",
+   "at": "2026-11-21T08:44:03Z"
+  },
+  {
+   "step": "review",
+   "detail": "读取题目、解析结果及检索命中并逐字段填写"
+  }
+ ],
+ "_contract_fields": [
+  "zero_acc",
+  "one_ppl"
+ ],
+ "_contract_raw": {
+  "zero_acc": "string | null",
+  "one_ppl": "string | null"
+ },
+ "_fill_instructions": "Fill every contract field from the parsed PDF. Each key claim needs an evidence item {claim, page, block_id|table_id, quote}. Use null + an 'unreported' entry when the PDF does not report it.",
+ "verification": {
+  "evidence_checked": 6,
+  "evidence_verified": 6,
+  "n_issues": 0,
+  "report": "verification.json"
+ }
+}

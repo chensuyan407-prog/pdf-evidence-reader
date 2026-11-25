@@ -1,0 +1,352 @@
+{
+ "arm_version": "1.1",
+ "paper": {
+  "title": "阅读01｜文献文档解析 — pdf-evidence-reader Skill",
+  "challenge_id": "product-arena-08-3027d350"
+ },
+ "entrypoint": "src/reproduce.py",
+ "environment": {
+  "dependencies": "requirements.txt",
+  "python_version": ">=3.9",
+  "gpu_required": false,
+  "extra_packages": [
+   "PyMuPDF>=1.23",
+   "tesseract (optional, for scanned pages)"
+  ]
+ },
+ "execution": {
+  "log_path": "execution/run.log",
+  "exit_code": 0,
+  "ran_at": "2026-11-25T12:47:23.639995Z",
+  "wall_time_s": 1.94,
+  "ran_by": "agent",
+  "artifacts": [
+   {
+    "id": "metrics",
+    "path": "execution/results/metrics.json",
+    "type": "metric",
+    "format": "json",
+    "checksum_sha256": "6507c06d6aaa5476d892b107fa2084f3f6bbce26cedeb2920305dea63d016076"
+   },
+   {
+    "id": "preview_two_column",
+    "path": "execution/results/parsed/two_column_en/previews/page_001.png",
+    "type": "figure",
+    "format": "png",
+    "checksum_sha256": "294da3011d3934a00286d67beb152e1a28ebe253707220d7be9d2bbea620935b"
+   },
+   {
+    "id": "preview_two_column_p2",
+    "path": "execution/results/parsed/two_column_en/previews/page_002.png",
+    "type": "figure",
+    "format": "png",
+    "checksum_sha256": "86946bed9a25d0cc9759aa7e3a73697852f61a6dbf97debbbcdb289eadb7f650"
+   },
+   {
+    "id": "parsed_two_column",
+    "path": "execution/results/parsed/two_column_en/doc.json",
+    "type": "data",
+    "format": "json",
+    "checksum_sha256": "3015166d28e07d5cb361dd2a0dc0581beeafa946abb3bca945e150cdc16949e6"
+   },
+   {
+    "id": "parsed_zh",
+    "path": "execution/results/parsed/single_column_zh/doc.json",
+    "type": "data",
+    "format": "json",
+    "checksum_sha256": "3e6f69f8784d841844947d1222d1020d80ab19f4159b5bba3c361c7554261994"
+   },
+   {
+    "id": "parsed_booktabs",
+    "path": "execution/results/parsed/booktabs_table/doc.json",
+    "type": "data",
+    "format": "json",
+    "checksum_sha256": "66bfde914c00da49c1cb8e6da3e3c091f2329f2dbc07416b7f9d0e52454a2bb6"
+   },
+   {
+    "id": "table_booktabs_html",
+    "path": "execution/results/parsed/booktabs_table/tables/T1.html",
+    "type": "table",
+    "format": "other",
+    "checksum_sha256": "24654bf53f25b51887f45dd9607c0e575da204f25a58804ebdc5fd0958ff12c9"
+   },
+   {
+    "id": "example_result",
+    "path": "execution/results/example_case/output/result.json",
+    "type": "data",
+    "format": "json",
+    "checksum_sha256": "7b8717de43e77f9488b44f2d2457348abf600ca085ef207be2612371b2813516"
+   },
+   {
+    "id": "example_verification",
+    "path": "execution/results/example_case/output/verification.json",
+    "type": "data",
+    "format": "json",
+    "checksum_sha256": "e27c3226951ffb5a3f1727a08ddb1aef1a7bc3199a5ee4b7544f2fccc6d6287b"
+   }
+  ]
+ },
+ "expected_outputs": [
+  {
+   "name": "two_column_en: reading order",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: sentences split across columns/pages rejoined",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: header/footer leakage into body",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: heading_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: heading_level_accuracy",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: caption_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: table_cell_accuracy",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: equation_number_and_superscript",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: footnote_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: reference_count_exact",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "two_column_en: title_exact",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: reading order",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: header/footer leakage into body",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: heading_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: heading_level_accuracy",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: caption_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: table_cell_accuracy",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: reference_count_exact",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "single_column_zh: title_exact",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: header/footer leakage into body",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: heading_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: heading_level_accuracy",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: caption_recall",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: table_cell_accuracy",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: reference_count_exact",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "numeric_tolerance"
+  },
+  {
+   "name": "booktabs_table: table_span_Table2_r0c1",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "exact_match"
+  },
+  {
+   "name": "robustness: scanned_en",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "exact_match"
+  },
+  {
+   "name": "robustness: encrypted_en",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "exact_match"
+  },
+  {
+   "name": "robustness: repeat-run determinism",
+   "type": "metric",
+   "produced_by": [
+    "metrics"
+   ],
+   "comparison_method": "exact_match"
+  },
+  {
+   "name": "example case: evidence quotes verified",
+   "type": "metric",
+   "produced_by": [
+    "example_result"
+   ],
+   "comparison_method": "numeric_tolerance"
+  }
+ ],
+ "characterization": {
+  "path": "characterization.json"
+ },
+ "trace": "trace/trace.jsonl",
+ "skills_used": [
+  {
+   "skill_id": "pdf-evidence-reader",
+   "version": "0.4.0"
+  }
+ ],
+ "provenance": {
+  "created_by": "agent",
+  "toolchain": "Claude Code + Python 3.13.14 + PyMuPDF 1.28.2"
+ },
+ "handoff": {
+  "status": "partial",
+  "next_suggestion": "Test on real publisher PDFs (IEEE/Elsevier/Nature, scanned theses); add 3-column and whitespace-only table cases; publish GitHub link.",
+  "modality_notes": {
+   "skills": "Skill lives in submission/ (SKILL.md + scripts); copy also in skills/SKILL.md"
+  }
+ }
+}

@@ -32,3 +32,19 @@ python tests/v03/run_holdout.py --skill submission/scripts --label v03    # held
 - `v03/fixtures/controls/`: 19 verifier controls; each folder is self-contained and is verified after being copied elsewhere.
 - `holdout_truth_v0.3.json`: ground truth for held-out pages, written from page images before the frozen code ran.
 - PDFs (`pdfs/`, `holdout_pdfs/`) are not shipped in the package; sources and SHA-256 are in HOLDOUT_v0.3.md and the review folders.
+
+## v0.4 additions
+
+```bash
+python tests/v04/make_samples_v04.py tests/v04/samples     # optional: the runner regenerates them under out/<label>/samples
+python tests/v04/run_v04.py --skill submission/scripts --label v04
+```
+
+- `v04/make_samples_v04.py`: synthetic PDFs with exact truth - a "Table 1" that is an embedded PNG on a text-layer page,
+  a 3-column 2-page layout (content stream reversed, running header, a paragraph continuing from p1 col 3 to p2 col 1),
+  unnumbered / ALL-CAPS / "Appendix A:" / "A.1" headings, and a ruled table continued on the next page.
+- `v04/run_v04.py` groups: `synthetic`, `real` (BN / GloVe / Chinchilla sections, Attention eq. 1 and 3, Chinchilla eq. 2,
+  `latex_plain` unit cases; skipped when the PDFs are absent), `workflow` (run_case + fill_result.py on Attention: refusals,
+  finalize statuses, broken-JSON recovery, tampered case_id, deleted field, 5 contract shapes, contract naming `evidence`,
+  encrypted input), `package` (submission/ size and file limits).
+- The same runner on the v0.3.1 scripts (`git archive dea5dc8 submission/scripts`) is the before/after comparison.

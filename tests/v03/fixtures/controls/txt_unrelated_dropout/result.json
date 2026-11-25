@@ -1,0 +1,22 @@
+{
+ "case_id": "attention",
+ "_contract_fields": [
+  "bleu"
+ ],
+ "bleu": "0.1",
+ "status": "success",
+ "unreported": [],
+ "uncertainty": [],
+ "conflicts": [],
+ "field_status": {
+  "bleu": "text_layer"
+ },
+ "evidence": [
+  {
+   "field": "bleu",
+   "page": 8,
+   "block_id": "p8-b18",
+   "quote": "The Transformer (big) model trained for English-to-French used dropout rate Pdrop = 0.1, instead of 0.3."
+  }
+ ]
+}

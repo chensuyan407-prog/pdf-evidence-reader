@@ -1,0 +1,69 @@
+{
+ "case_id": "attention",
+ "bleu": "38.1",
+ "cost": "2.3 ·",
+ "status": "success",
+ "evidence": [
+  {
+   "field": "bleu",
+   "type": "table_cell",
+   "table": "Table 2",
+   "row": {
+    "Model": "Transformer",
+    "col1": "(base"
+   },
+   "column": "BLEU/EN-FR",
+   "page": 8,
+   "value": "38.1"
+  },
+  {
+   "field": "cost",
+   "type": "table_cell",
+   "table": "Table 2",
+   "row": {
+    "Model": "Transformer",
+    "col1": "(big)"
+   },
+   "column": "Training Cost (FLOPs)/EN-DE",
+   "page": 8,
+   "value": "2.3 ·"
+  }
+ ],
+ "uncertainty": [
+  "图像数值由评委目读。",
+  "成本查询缺指数，改由裁图回读。"
+ ],
+ "unreported": [],
+ "conflicts": [],
+ "field_status": {
+  "bleu": "text_layer",
+  "cost": "text_layer"
+ },
+ "run_status": {
+  "parse_seconds": 1.3,
+  "case_error": null,
+  "n_pdfs": 1,
+  "task_file": "D:\\application\\2026-11-21\\grader-prompt-md-100-bundle-submission\\outputs\\grading-v2\\cases\\attention\\task.md",
+  "reason": "所问字段均已回指原页或解析产物"
+ },
+ "change_log": [
+  {
+   "step": "parse",
+   "file": "D:\\application\\2026-11-21\\grader-prompt-md-100-bundle-submission\\outputs\\grading-v2\\cases\\attention\\paper.pdf",
+   "status": "success",
+   "at": "2026-11-21T09:18:30Z"
+  },
+  {
+   "step": "逐字段读取、记录来源并填答"
+  }
+ ],
+ "_contract_fields": [
+  "bleu",
+  "cost"
+ ],
+ "_contract_raw": {
+  "bleu": "string | null",
+  "cost": "string | null"
+ },
+ "_fill_instructions": "Fill every contract field from the parsed PDF. Evidence items carry 'field': table values -> {field, type:'table_cell', table, page, row{KEY:VALUE}, column:'A/B', value}; text -> {field, page, block_id|table_id, quote}; page images -> {field, type:'image_region', page, bbox, crop, transcription}. field_status per field: text_layer | image_read | unreadable. Use null + an 'unreported' entry when the PDF does not report it or it cannot be read."
+}

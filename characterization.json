@@ -1,0 +1,357 @@
+{
+ "deviations_from_paper": [
+  {
+   "target": "two_column_en: reading order",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "pairwise paragraph order vs ground truth; baselines: stream=0.5714, sorted=0.9643",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.2
+  },
+  {
+   "target": "two_column_en: sentences split across columns/pages rejoined",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "baselines: stream=0.0, sorted=0.0",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: header/footer leakage into body",
+   "metric": "absolute_error",
+   "actual_value": 0,
+   "reference_value": 0,
+   "score": 1.0,
+   "explanation": "count of running headers/page numbers/margin stamps left in body text; baselines: stream=4, sorted=4",
+   "evidence_artifact": "metrics",
+   "tolerance": 3
+  },
+  {
+   "target": "two_column_en: heading_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: heading_level_accuracy",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: caption_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: table_cell_accuracy",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: equation_number_and_superscript",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: footnote_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: reference_count_exact",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "two_column_en: title_exact",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "single_column_zh: reading order",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "pairwise paragraph order vs ground truth; baselines: stream=1.0, sorted=1.0",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.2
+  },
+  {
+   "target": "single_column_zh: header/footer leakage into body",
+   "metric": "absolute_error",
+   "actual_value": 0,
+   "reference_value": 0,
+   "score": 1.0,
+   "explanation": "count of running headers/page numbers/margin stamps left in body text; baselines: stream=5, sorted=2",
+   "evidence_artifact": "metrics",
+   "tolerance": 3
+  },
+  {
+   "target": "single_column_zh: heading_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "single_column_zh: heading_level_accuracy",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "single_column_zh: caption_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "single_column_zh: table_cell_accuracy",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "single_column_zh: reference_count_exact",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "single_column_zh: title_exact",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "booktabs_table: header/footer leakage into body",
+   "metric": "absolute_error",
+   "actual_value": 0,
+   "reference_value": 0,
+   "score": 1.0,
+   "explanation": "count of running headers/page numbers/margin stamps left in body text; baselines: stream=0, sorted=0",
+   "evidence_artifact": "metrics",
+   "tolerance": 3
+  },
+  {
+   "target": "booktabs_table: heading_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "booktabs_table: heading_level_accuracy",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "booktabs_table: caption_recall",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "booktabs_table: table_cell_accuracy",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "booktabs_table: reference_count_exact",
+   "metric": "absolute_error",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "Skill structure output vs ground truth (baselines produce plain text with no structure)",
+   "evidence_artifact": "metrics",
+   "tolerance": 0.5
+  },
+  {
+   "target": "booktabs_table: table_span_Table2_r0c1",
+   "metric": "exact_match",
+   "actual_value": 1.0,
+   "reference_value": 1.0,
+   "score": 1.0,
+   "explanation": "merged header cell recovered with correct colspan",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "target": "robustness: scanned_en",
+   "metric": "exact_match",
+   "actual_value": "partial",
+   "reference_value": [
+    "partial",
+    "success"
+   ],
+   "score": 1.0,
+   "explanation": "honest status for scanned / encrypted input: no text layer (scanned); tesseract executable not found on PATH. Text for this page is missing or unreliable. Page image and layout regions are provided for visual reading.",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "target": "robustness: encrypted_en",
+   "metric": "exact_match",
+   "actual_value": "failed",
+   "reference_value": [
+    "failed"
+   ],
+   "score": 1.0,
+   "explanation": "honest status for scanned / encrypted input",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "target": "robustness: repeat-run determinism",
+   "metric": "exact_match",
+   "actual_value": true,
+   "reference_value": true,
+   "score": 1.0,
+   "explanation": "doc.json identical across two runs (timing excluded)",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "target": "example case: evidence quotes verified",
+   "metric": "absolute_error",
+   "actual_value": 4,
+   "reference_value": 4,
+   "score": 1.0,
+   "explanation": "verify_result.py on the example result.json; negative control with a fabricated quote exit=1 (4/5 verified)",
+   "evidence_artifact": "example_result",
+   "tolerance": 1
+  }
+ ],
+ "envelope": [
+  {
+   "param": "columns_per_page",
+   "min": 1,
+   "max": 2,
+   "tested": true
+  },
+  {
+   "param": "pages",
+   "min": 1,
+   "max": 2,
+   "tested": true,
+   "unit": "pages"
+  },
+  {
+   "param": "languages",
+   "min": 1,
+   "max": 2,
+   "tested": true,
+   "unit": "en, zh"
+  },
+  {
+   "param": "columns_per_page",
+   "min": 3,
+   "max": 3,
+   "tested": false
+  }
+ ],
+ "failure_modes": [
+  {
+   "condition": "image-only (scanned) page and no tesseract on PATH",
+   "symptom": "page text missing; status=partial with ocr_needed_but_unavailable warning naming the page",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "condition": "password-protected PDF without --password",
+   "symptom": "status=failed, error=encrypted, nothing extracted",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "condition": "tables without any ruling lines (whitespace-only)",
+   "symptom": "not detected by the ruling-line detector; falls back to PyMuPDF find_tables, which may miss them",
+   "evidence_artifact": "metrics"
+  },
+  {
+   "condition": "display equations built from many separate glyph blocks",
+   "symptom": "equation may be split into several blocks; LaTeX is not reconstructed (unicode + ^{}/_{} markup only)",
+   "evidence_artifact": "metrics"
+  }
+ ],
+ "sensitivity": [],
+ "notes": "Targets are synthetic layout samples generated by src/make_samples.py with exact ground truth, not the platform's official cases. reference_value is the ground truth; baseline numbers are given in each explanation."
+}

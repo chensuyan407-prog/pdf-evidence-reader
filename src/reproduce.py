@@ -331,6 +331,60 @@ def main():
     miss = parse_pdf.parse(os.path.join(samples, "does_not_exist.pdf"), os.path.join(RES, "_missing"))
     metrics["robustness"]["missing_file"] = {"status": miss["status"], "error": miss["error"]}
     shutil.rmtree(os.path.join(RES, "_missing"), ignore_errors=True)
+    # v0.3.1 robustness: JSON Schema contract, structure_summary.json, dict/list fields, LaTeX brace equivalence, auto status update
+    v31 = os.path.join(RES, "v031_probe")
+    shutil.rmtree(v31, ignore_errors=True)
+    os.makedirs(os.path.join(v31, "input"))
+    shutil.copy(os.path.join(samples, "two_column_en.pdf"), os.path.join(v31, "input", "paper.pdf"))
+    with open(os.path.join(v31, "input", "case.json"), "w", encoding="utf-8-sig") as fh:
+        json.dump({
+            "case_id": "v031-schema",
+            "pdf": "paper.pdf",
+            "output_contract": {
+                "type": "object",
+                "properties": {
+                    "sections": {"type": "array"},
+                    "equation_expr": {"type": "string"},
+                    "table_method": {"type": "string"},
+                },
+                "required": ["sections"],
+            },
+        }, fh)
+    rc_p = os.path.join(ROOT, "submission", "scripts", "run_case.py")
+    vr_p = os.path.join(ROOT, "submission", "scripts", "verify_result.py")
+    subprocess.run([sys.executable, rc_p, "--case", os.path.join(v31, "input", "case.json"),
+                    "--out", os.path.join(v31, "output"), "--work", os.path.join(v31, "work")],
+                   capture_output=True, text=True, encoding="utf-8", check=True)
+    ss_path = os.path.join(v31, "output", "parsed", "paper", "structure_summary.json")
+    r31_path = os.path.join(v31, "output", "result.json")
+    r31 = json.load(open(r31_path, encoding="utf-8"))
+    ss = json.load(open(ss_path, encoding="utf-8"))
+    doc31 = json.load(open(os.path.join(v31, "output", "parsed", "paper", "doc.json"), encoding="utf-8"))
+    eq31 = next(e for e in doc31["equations"] if e.get("number"))
+    b0 = next(b for b in doc31["blocks"] if b.get("role") == "body")
+    r31["sections"] = [{"title": s["title"]} for s in ss["sections"][:1]] if ss["sections"] else [{"title": b0["text"][:20]}]
+    r31["equation_expr"] = (eq31.get("expr_unicode") or eq31.get("marked") or "").replace("{", "").replace("}", "")
+    r31["table_method"] = "Layout-aware"
+    r31["evidence"] = [
+        {"field": "sections", "page": b0["page"], "block_id": b0["id"], "quote": ss["sections"][0]["title"] if ss["sections"] else b0["text"][:20]},
+        {"field": "equation_expr", "type": "equation", "equation": str(eq31["number"]), "page": eq31["page"]},
+        {"field": "table_method", "page": doc31["tables"][0]["page"], "table_id": doc31["tables"][0]["id"], "quote": "Layout-aware"},
+    ]
+    json.dump(r31, open(r31_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    vp31 = subprocess.run([sys.executable, vr_p, "--result", r31_path], capture_output=True, text=True, encoding="utf-8")
+    r31_after = json.load(open(r31_path, encoding="utf-8"))
+    metrics["robustness"]["v031_schema_latex_struct_status"] = {
+        "fields_from_properties": sorted(r31.get("_contract_fields") or []) == ["equation_expr", "sections", "table_method"],
+        "structure_summary_exists": os.path.exists(ss_path),
+        "verify_exit": vp31.returncode,
+        "status_auto_updated": r31_after.get("status") == "success",
+        "scratch_cleaned": "_fill_instructions" not in r31_after and "_contract_raw" not in r31_after,
+        "ok": (vp31.returncode == 0 and r31_after.get("status") == "success"
+               and os.path.exists(ss_path)
+               and sorted(r31.get("_contract_fields") or []) == ["equation_expr", "sections", "table_method"]
+               and "_fill_instructions" not in r31_after),
+    }
+    log(f"robustness v031_schema_latex_struct_status: ok={metrics['robustness']['v031_schema_latex_struct_status']['ok']}")
     step(step_type="decision", title="Run the full workflow on an example case",
          body="Scores look consistent; next exercise run_case -> find_evidence -> verify_result so the result.json interface and the evidence check are demonstrated, including a negative control with a fabricated quote.")
     metrics["example_case"] = example_case(samples)

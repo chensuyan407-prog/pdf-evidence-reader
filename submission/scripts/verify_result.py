@@ -80,6 +80,13 @@ def norm(s):
     return s.replace("’", "'").replace("“", '"').replace("”", '"').replace("−", "-").replace("–", "-")
 
 
+def norm_eq(s):
+    """Normalise LaTeX/Unicode equations across brace variants (w_{i}^{T} == w_i^T)."""
+    t = norm(s).replace(r"\left", "").replace(r"\right", "")
+    t = re.sub(r"([_^])\{([A-Za-z0-9\\]+)\}", r"\1\2", t)
+    return t.replace("{", "").replace("}", "")
+
+
 def values_in(text):
     """Numeric values in a string, scientific notation aware ('2.3 × 10¹⁹', '2.3·10^19', '2.3e19', '10^20')."""
     t = str(text or "")
@@ -206,6 +213,7 @@ def region_check(pdf, page_no, bbox, cell_text):
         reasons.append(f"digits inside the cell box on the page ({ins_digits!r}) differ from the parsed cell ({cell_digits!r})")
     size = max([c[3] for c in inside] or [10.0])
     last = (cell_text or "").rstrip()[-1:]
+    cell_has_digit = any(ch.isdigit() for ch in (cell_text or ""))
     if right:
         gap = right[0][0] - x1
         nb = right[0]
@@ -215,7 +223,7 @@ def region_check(pdf, page_no, bbox, cell_text):
         tied = (last and last in OPS + "x(") or nb[3] < 0.85 * size or nb[2] in OPS or gap < 0.15 * size
         if gap < 0.35 * size and tied:
             reasons.append(f"the expression continues right after the cell edge (gap {gap:.1f} pt): next characters {nxt!r}")
-        elif gap < 0.45 * size and not (last.isdigit() and (nb[2].isdigit() or nb[2] in "−-+")):
+        elif gap < 0.45 * size and (cell_has_digit or nb[2].isdigit()) and not (last.isdigit() and (nb[2].isdigit() or nb[2] in "−-+")):
             # only a word space away and not simply the next number: the printed value
             # (e.g. "8.0 Billion") runs past the cell box
             reasons.append(f"text continues within a word space of the cell's right edge (gap {gap:.1f} pt): {nxt!r}; "
@@ -227,7 +235,7 @@ def region_check(pdf, page_no, bbox, cell_text):
         prv = "".join(c[2] for c in sorted(left[:12], key=lambda c: c[0]) if x0 - c[1] < 25)
         if gap < 0.35 * size and (left[0][2] in OPS or gap < 0.15 * size):
             reasons.append(f"the expression continues left of the cell edge (gap {gap:.1f} pt)")
-        elif gap < 0.45 * size and not (left[0][2].isdigit() and (cell_text or " ").lstrip()[:1] in "0123456789−-+"):
+        elif gap < 0.45 * size and (cell_has_digit or left[0][2].isdigit()) and not (left[0][2].isdigit() and (cell_text or " ").lstrip()[:1] in "0123456789−-+"):
             reasons.append(f"text continues within a word space of the cell's left edge (gap {gap:.1f} pt): {prv!r}; "
                            "the cell may hold only part of the printed value")
     return reasons
@@ -433,14 +441,15 @@ def main():
         img = [e for e in evs if e["kind"] == "image_region"]
         v = {"answer": val, "checks": {"value_equals_parsed_cell": None, "source_region_complete": None,
                                        "needs_visual_check": False}, "reasons": []}
-        ans_bad = incomplete_reasons(str(val), "answer")
+        ans_bad = incomplete_reasons(val, "answer") if isinstance(val, str) else []
         if eqv:
             e = eqv[0]
             if not e["ok"]:
                 v["verdict"], v["reasons"] = "evidence_unsupported", [e["reason"]]
             else:
                 rec = [norm(e.get("expr_unicode") or ""), norm(e.get("expr_latex") or "")]
-                matches = any(r and r in norm(str(val)) for r in rec)
+                rec_eq = [norm_eq(e.get("expr_unicode") or ""), norm_eq(e.get("expr_latex") or "")]
+                matches = any(r and r in norm(str(val)) for r in rec) or any(r and r in norm_eq(str(val)) for r in rec_eq)
                 v["checks"]["value_equals_parsed_cell"] = matches
                 if not matches:
                     v["verdict"] = "value_mismatch"
@@ -508,7 +517,21 @@ def main():
             else:
                 joined = " ".join(e["quote"] for e in ok_txt)
                 an = values_in(val)
-                present = all(any(close(x, y) for y in values_in(joined)) for x in an) if an else norm(str(val)) in norm(joined)
+                if isinstance(val, (dict, list)):
+                    def _leaf_vals(obj):
+                        if isinstance(obj, dict):
+                            for vv in obj.values():
+                                yield from _leaf_vals(vv)
+                        elif isinstance(obj, list):
+                            for vv in obj:
+                                yield from _leaf_vals(vv)
+                        elif obj not in (None, ""):
+                            yield str(obj)
+                    leaves = list(_leaf_vals(val))
+                    nj = norm(joined)
+                    present = (all(any(close(x, y) for y in values_in(joined)) for x in an) if an else False) or (bool(leaves) and all(norm(lf) in nj for lf in leaves if norm(lf)))
+                else:
+                    present = all(any(close(x, y) for y in values_in(joined)) for x in an) if an else norm(str(val)) in norm(joined)
                 if present:
                     v["verdict"] = "string_match_only"
                     v["checks"]["needs_visual_check"] = True
@@ -567,6 +590,12 @@ def main():
     out = a.out or os.path.join(rdir, "verification.json")
     with open(out, "w", encoding="utf-8") as fh:
         json.dump({"summary": summary, "details": details}, fh, ensure_ascii=False, indent=1)
+    blocking = any(i["code"] in FAIL_VERDICTS or i["code"] in ("evidence_not_verifiable", "missing_contract_field", "missing_case_id")
+                   for i in issues)
+    if not blocking and res.get("status") == "pending_agent_fill":
+        res["status"] = "partial" if any(v.get("verdict") in ("image_read_unverified", "image_read_unbound") for v in verdicts.values()) else "success"
+    res.pop("_contract_raw", None)
+    res.pop("_fill_instructions", None)
     res["verification"] = {"evidence_items": len(details), "evidence_ok": summary["evidence_ok"],
                            "field_verdicts": {f: v["verdict"] for f, v in verdicts.items()},
                            "needs_review": summary["needs_review"],
@@ -574,8 +603,7 @@ def main():
     with open(a.result, "w", encoding="utf-8") as fh:
         json.dump(res, fh, ensure_ascii=False, indent=1)
     print(json.dumps(summary, ensure_ascii=False, indent=1))
-    sys.exit(1 if any(i["code"] in FAIL_VERDICTS or i["code"] in ("evidence_not_verifiable", "missing_contract_field", "missing_case_id")
-                      for i in issues) else 0)
+    sys.exit(1 if blocking else 0)
 
 
 def _norm_of(doc, q):

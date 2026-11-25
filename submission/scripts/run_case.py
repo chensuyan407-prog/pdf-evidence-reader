@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import parse_pdf  # noqa: E402
 
-CONTRACT_KEYS = ("output_contract", "outputs_contract", "output_schema", "required_outputs", "output_fields", "outputs")
+CONTRACT_KEYS = ("output_contract", "outputs_contract", "output_schema", "required_outputs", "output_fields", "outputs", "deliverables")
 
 
 def find_contract(obj):
@@ -46,7 +46,7 @@ def contract_fields(contract):
     if contract is None:
         return []
     if isinstance(contract, dict):
-        for k in ("fields", "required", "required_fields", "properties"):
+        for k in ("fields", "properties", "required_fields", "required"):
             if k in contract:
                 return contract_fields(contract[k])
         return list(contract.keys())
@@ -117,7 +117,7 @@ def main():
     case, case_err = {}, None
     if os.path.exists(a.case):
         try:
-            with open(a.case, encoding="utf-8") as fh:
+            with open(a.case, encoding="utf-8-sig") as fh:
                 case = json.load(fh)
         except Exception as e:
             case_err = f"case.json unreadable: {e}"
@@ -143,6 +143,21 @@ def main():
         cache = None if a.cache == "off" else (a.cache or os.path.join(a.work, "parse_cache"))
         r = parse_pdf.parse(p, pdir, password=a.password, pages=parse_pdf.parse_pages(a.pages), preview=a.preview,
                             cache_dir=cache)
+        if r.get("status") != "failed" and os.path.exists(os.path.join(pdir, "doc.json")):
+            try:
+                doc = json.load(open(os.path.join(pdir, "doc.json"), encoding="utf-8"))
+                summary_struct = {
+                    "title": [b["text"] for b in doc.get("blocks", []) if b.get("role") == "title"],
+                    "sections": [{"number": s.get("number"), "title": s.get("title"), "level": s.get("level"), "page": s.get("page")} for s in doc.get("sections", [])],
+                    "tables": [{"id": t.get("id"), "page": t.get("page"), "caption": t.get("caption"), "n_rows": len(t.get("rows") or []), "n_cols": t.get("n_cols")} for t in doc.get("tables", [])],
+                    "equations": [{"number": e.get("number"), "page": e.get("page"), "status": e.get("transcription_status"), "latex": e.get("expr_latex") or e.get("latex")} for e in doc.get("equations", [])],
+                    "n_references": len(doc.get("references", [])),
+                    "document_markdown": os.path.join(pdir, "document.md"),
+                }
+                with open(os.path.join(pdir, "structure_summary.json"), "w", encoding="utf-8") as sfh:
+                    json.dump(summary_struct, sfh, ensure_ascii=False, indent=1)
+            except Exception:
+                pass
         sources.append({"file": p, "sha256": sha256(p), "parsed_dir": pdir, "parse_status": r["status"],
                         "parse_error": r.get("error"), "page_count": r.get("meta", {}).get("page_count"),
                         "unresolved_pages": r.get("unresolved_pages", []), "ocr_pages": r.get("ocr_pages", []),

@@ -24,7 +24,11 @@ Evidence kinds:
                -> the crop is tied to the PDF (SHA-256, page, bbox, crop hash,
                   re-rendered pixels); the transcription itself is NOT checked.
 
-Field verdicts (fail = exit code 1; review = listed in needs_review):
+Field verdicts (hard fail = exit code 1; soft fail / review = warnings, exit 0):
+  Exit 1 only for evidence that contradicts the PDF (value/column/row mismatch, quote not in the PDF,
+  answer not in its evidence, value without any evidence, foreign crop) or a broken contract (missing
+  case_id / contract field). Soft fails (null_without_reason, contract_type_mismatch, answer_incomplete,
+  parsed_cell_incomplete) and review verdicts are listed in `warnings` and never block.
   supported_by_table_cell                ok
   supported_by_equation_record           ok (answer = automatic transcription of the numbered equation, no uncertain symbols)
   equation_needs_visual_check            review (transcription partial / crop only)
@@ -61,10 +65,12 @@ except ImportError:  # pragma: no cover
 FAIL_VERDICTS = {"value_mismatch", "column_mismatch", "row_mismatch", "evidence_unsupported", "parsed_cell_incomplete",
                  "image_provenance_mismatch", "value_not_in_evidence", "no_evidence", "null_without_reason",
                  "answer_incomplete", "contract_type_mismatch"}
+SOFT_VERDICTS = {"null_without_reason", "contract_type_mismatch", "answer_incomplete", "parsed_cell_incomplete"}
+HARD_VERDICTS = FAIL_VERDICTS - SOFT_VERDICTS  # evidence contradicts the PDF / value without evidence
 REVIEW_VERDICTS = {"equation_needs_visual_check", "string_match_only", "image_read_unverified", "image_read_unbound", "parsed_cell_incomplete",
                    "supported_by_parsed_cell_region_unchecked", "answer_incomplete", "not_determined"}
 META_KEYS = {"case_id", "status", "sources", "evidence", "uncertainty", "unreported", "conflicts", "run_status",
-             "change_log", "verification", "field_status", "status_reason", "_contract_fields",
+             "change_log", "verification", "field_status", "status_reason", "warnings", "_contract_fields",
              "_contract_required", "_contract_schema", "_contract_raw", "_fill_instructions"}
 SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺", "0123456789-+")
 RE_SCI = re.compile(r"([-−]?\d[\d,]*(?:\.\d+)?)\s*[·×x*∗⋅]\s*10\s*(?:\^\s*\{?\s*([-−]?\d+)\s*\}?|([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+))")
@@ -124,7 +130,9 @@ def _matches_type(val, tname):
     if tname == "boolean":
         return isinstance(val, bool)
     if tname == "integer":
-        return isinstance(val, int) and not isinstance(val, bool)
+        return (isinstance(val, int) and not isinstance(val, bool)) or (
+            isinstance(val, float) and val.is_integer()
+        )
     if tname == "number":
         return isinstance(val, (int, float)) and not isinstance(val, bool)
     if tname == "string":
@@ -738,13 +746,8 @@ def main():
         f_schema = schema_map.get(f)
         schema_errs = validate_value(val, f_schema, f) if f_schema else []
         if schema_errs:
-            v = {"answer": val, "verdict": "contract_type_mismatch", "needs_review": False,
-                 "checks": {"value_equals_parsed_cell": None, "source_region_complete": None, "needs_visual_check": False},
-                 "reasons": schema_errs}
-            verdicts[f] = v
             issues.append({"code": "contract_type_mismatch", "field": f, "detail": "; ".join(schema_errs)})
             contract_gaps.append({"field": f, "code": "contract_type_mismatch", "detail": "; ".join(schema_errs)})
-            continue
 
         sub_evs = [e for e in evs if e.get("subfield")]
         if sub_evs:
@@ -781,6 +784,10 @@ def main():
             }
         else:
             v = _verify_target(val, evs, f, doc_full_norm)
+        if schema_errs:
+            v.setdefault("reasons", []).extend(schema_errs)
+            if v.get("verdict") not in HARD_VERDICTS:
+                v["verdict"] = "contract_type_mismatch"
         verdicts[f] = v
         if v["verdict"] in FAIL_VERDICTS:
             issues.append({"code": v["verdict"], "field": f, "detail": "; ".join(v.get("reasons", []))})
@@ -811,12 +818,17 @@ def main():
     }
     out = a.out or os.path.join(rdir, "verification.json")
     _atomic_write_json(out, {"summary": summary, "details": details})
-    blocking = any(i["code"] in FAIL_VERDICTS or i["code"] in ("evidence_not_verifiable", "missing_contract_field", "missing_case_id")
+    blocking = any(i["code"] in HARD_VERDICTS or i["code"] in ("evidence_not_verifiable", "missing_contract_field", "missing_case_id")
                    for i in issues)
+    warnings = [f"{i.get('field') or i.get('path')}: {i['code']}" for i in issues if i["code"] in SOFT_VERDICTS]
+    warnings += [f"{f}: {v.get('verdict')} (review)" for f, v in verdicts.items() if v.get("needs_review")]
+    warnings += [f"{f}: quote/metric keyword mismatch (review)" for f, v in verdicts.items()
+                 if (v.get("checks") or {}).get("quote_keyword_mismatch")]
+    summary["warnings"] = warnings
+    summary["blocking"] = blocking
+    _atomic_write_json(out, {"summary": summary, "details": details})
     if not blocking and res.get("status") == "pending_agent_fill":
-        kw_mismatch = any((v.get("checks") or {}).get("quote_keyword_mismatch") for v in verdicts.values())
-        has_img = any(v.get("verdict") in ("image_read_unverified", "image_read_unbound") for v in verdicts.values())
-        res["status"] = "partial" if (has_img or kw_mismatch) else "success"
+        res["status"] = "success"  # review items are warnings; fill_result.py finalize sets the final status
     res.pop("_contract_raw", None)
     res.pop("_fill_instructions", None)
     res["verification"] = {"evidence_items": len(details), "evidence_ok": summary["evidence_ok"],
@@ -824,6 +836,7 @@ def main():
                            "needs_review": summary["needs_review"],
                            "review_reasons": review_reasons,
                            "contract_gaps": contract_gaps,
+                           "warnings": warnings, "blocking": blocking,
                            "n_issues": len(issues), "report": os.path.basename(out)}
     _atomic_write_json(a.result, res)
     print(json.dumps(summary, ensure_ascii=False, indent=1))

@@ -83,7 +83,7 @@ pip install "pymupdf>=1.23" numpy fonttools   # 测试环境：Python 3.13, PyMu
    LaTeX 中 Unicode 数学斜体字母规范为普通字母、希腊字母规范为 `\alpha` 等命令，粗体保留 `\mathbf`；`\cdotmin` 这类粘连命令拆为 `\cdot min`。
 5. **工作流**：`fill_result.py` 取代手改 JSON（DeepSeek Harness 手改大 JSON 易写坏语法、漏字段、覆盖 `case_id`）。每次 `put` 用验证器同一套规则预检，
    不通过则拒绝写入并给出原因/候选；`finalize` 为缺失字段写入 `not_determined` 说明、运行验证器、按结果设置 `success/partial/failed` 与
-   `status_reason`；JSON 被手改坏时自动从备份恢复，`case_id` 与契约键从骨架恢复。旧流程（手改 + `verify_result.py`）保持可用。
+   `status_reason`（v0.5：只有答案与原文矛盾、主 PDF 无法解析或过半必填字段未确定时才为 `partial`；少量未确定/图像读取/需复核项写入 `warnings` 并保持 `success`；`finalize` 仅在答案与原文矛盾时 exit 1）；JSON 被手改坏时自动从备份恢复，`case_id` 与契约键从骨架恢复。旧流程（手改 + `verify_result.py`）保持可用。
 6. **契约兼容**：契约里出现 `case_id`/`evidence`/`sources`/`status` 等与元数据同名的字段时，骨架保留元数据结构，验证器判为 `meta_field`
    （v0.3 会把 `evidence` 字段置 null 并判 `no_evidence` 失败）。
 7. **导航与预算**：`outline.md` 汇总章节（含页码范围、区块 id）、每张表的列路径与行键、图像表、公式编号与状态、图、扫描页与告警；

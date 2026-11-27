@@ -162,8 +162,8 @@ def main():
     except Exception:
         pass
     ap = argparse.ArgumentParser()
-    ap.add_argument("--skill", required=True)
-    ap.add_argument("--label", required=True)
+    ap.add_argument("--skill", default=NEW_SCRIPTS)
+    ap.add_argument("--label", default="new")
     ap.add_argument("--parse-only", action="store_true")
     a = ap.parse_args()
     S = os.path.abspath(a.skill)

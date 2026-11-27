@@ -64,13 +64,18 @@ def _caption_label_ok(caption, key):
 
 def parts_of(doc, t):
     """The table followed by its continuation pieces on later pages."""
-    out, cur = [t], t
-    while True:
-        nxt = next((x for x in doc.get("tables", []) if x.get("continued_from") == cur["id"]), None)
-        if nxt is None or nxt in out:
-            return out
-        out.append(nxt)
-        cur = nxt
+    out = [t]
+    seen = {t["id"]}
+    changed = True
+    while changed:
+        changed = False
+        for x in doc.get("tables", []):
+            if x.get("continued_from") in seen and x["id"] not in seen:
+                out.append(x)
+                seen.add(x["id"])
+                changed = True
+    out[1:] = sorted(out[1:], key=lambda x: (x.get("page", 0), (x.get("bbox") or [0, 0])[1], x.get("id", "")))
+    return out
 
 
 def image_table(doc, spec):

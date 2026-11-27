@@ -25,7 +25,7 @@ sys.path.insert(0, HERE)
 import parse_pdf  # noqa: E402
 
 META_FIELDS = {"case_id", "status", "sources", "evidence", "uncertainty", "unreported", "conflicts", "run_status",
-               "change_log", "field_status"}
+               "change_log", "field_status", "warnings"}
 CONTRACT_PRIORITY = ("output_contract", "outputs_contract", "output_schema", "schema",
                      "required_outputs", "output_fields", "outputs", "deliverables")
 CONTRACT_KEYS = set(CONTRACT_PRIORITY)
@@ -672,6 +672,8 @@ def main():
     for f in fields:  # contract fields; a contract key equal to a meta key (evidence, sources...) keeps the meta value
         if f not in result:
             result[f] = None
+    if case_fatal or early_err:
+        preserve_existing = preserve_existing or _has_existing_work(existing)
     if case_fatal:
         result["status"] = "failed"
         result["run_status"]["reason"] = case_err

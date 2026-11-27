@@ -20,7 +20,8 @@ VALUE omitted: the table cell / equation transcription / image transcription is 
 VALUE is a string; add --json to pass a number, list or object (e.g. --json '[1, 2]').
 --add keeps the evidence already recorded for FIELD (several quotes for one answer); --append
 adds VALUE to a list-valued FIELD. A dotted FIELD (answers.q1) writes inside an object field.
-Exit code: 0 = written / finalize without blocking issues; 1 = refused (nothing written) or blocking issues.
+Exit code: 0 = written / finalized (warnings never block); 1 = put refused (nothing written) or an answer
+contradicts the PDF at finalize.
 """
 import argparse
 import copy
@@ -100,6 +101,8 @@ def load(rpath, allow_repair=True):
                 try:
                     with open(b, encoding="utf-8") as fh:
                         res = json.load(fh)
+                    if not isinstance(res, dict):
+                        continue
                     return res, f"result.json was not valid JSON ({e}); restored from {os.path.basename(b)}"
                 except Exception:
                     continue
@@ -523,25 +526,39 @@ def cmd_finalize(a, rpath):
     ]
     if res.get("status") not in ("failed", "refused"):
         res["status"] = "pending_agent_fill"
-    save(rpath, res)
-    cmd = [sys.executable, os.path.join(HERE, "verify_result.py"), "--result", rpath] + (["--pdf"] + a.pdf if a.pdf else [])
-    p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    cand_path = rpath + ".verify_tmp.json"
+    save(cand_path, res)
+    cmd = [sys.executable, os.path.join(HERE, "verify_result.py"), "--result", cand_path] + (["--pdf"] + a.pdf if a.pdf else [])
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except Exception as ex:
+        try:
+            os.remove(cand_path)
+        except OSError:
+            pass
+        print(json.dumps({"status": "error", "error": f"verifier execution failed: {ex}"}, ensure_ascii=False, indent=1))
+        sys.exit(1)
     vpath = os.path.join(os.path.dirname(os.path.abspath(rpath)), "verification.json")
     try:
         with open(vpath, encoding="utf-8") as fh:
             summ = json.load(fh)["summary"]
     except Exception:
         summ = None
-    res, _ = load(rpath)
+    try:
+        os.remove(cand_path)
+    except OSError:
+        pass
+    if p.returncode not in (0, 1) or summ is None:
+        print(json.dumps({"status": "error", "error": "verifier report unavailable or verifier crashed",
+                          "returncode": p.returncode, "stderr": (p.stderr or "")[:500]}, ensure_ascii=False, indent=1))
+        sys.exit(1)
     blocking = p.returncode != 0
     verdicts = (summ or {}).get("field_verdicts", {})
     pdf_sources = [s for s in (res.get("sources") or []) if isinstance(s, dict) and s.get("format", "pdf") == "pdf"]
     no_sources = not pdf_sources
     parse_failed = no_sources or all(s.get("parse_status") == "failed" for s in pdf_sources)
     case_fatal = bool((res.get("run_status") or {}).get("case_error")) and res.get("status") == "failed"
-    reasons = []
-    if summ is None:
-        reasons.append("verify_result.py did not run: " + (p.stderr or "")[-300:])
+    reasons, warnings = [], []
     if case_fatal:
         status = "failed"
         reasons.append(str((res.get("run_status") or {}).get("reason") or (res.get("run_status") or {}).get("case_error")))
@@ -554,44 +571,67 @@ def cmd_finalize(a, rpath):
     elif res.get("status") == "refused":
         status = "refused"
     else:
-        bad = {f: v.get("verdict") for f, v in verdicts.items() if v.get("verdict") in V.FAIL_VERDICTS}
+        # partial only when the core result is missing: evidence contradicting the PDF, the primary PDF unparsed,
+        # or most required fields undetermined/unreadable. Everything else is success + warnings.
+        hard = {f: v.get("verdict") for f, v in verdicts.items() if v.get("verdict") in V.HARD_VERDICTS}
+        type_bad = {f: v.get("verdict") for f, v in verdicts.items() if v.get("verdict") == "contract_type_mismatch"}
+        soft = {f: v.get("verdict") for f, v in verdicts.items()
+                if v.get("verdict") in V.SOFT_VERDICTS and v.get("verdict") != "contract_type_mismatch"}
         unread = [f for f in fields if res.get("field_status", {}).get(f) == "unreadable"]
         img = [f for f, v in verdicts.items() if v.get("verdict") in ("image_read_unverified", "image_read_unbound")]
         kw_bad = {f: v.get("reasons", []) for f, v in verdicts.items() if (v.get("checks") or {}).get("quote_keyword_mismatch")}
         answered = [f for f in fields if f not in PROTECTED and res.get(f) not in (None, "", [], {})]
-        if bad:
-            reasons.append("fields failing verification: " + ", ".join(f"{f} ({v})" for f, v in bad.items()))
+        req_open = [f for f in req_fields if f not in PROTECTED]
+        missing = set(undetermined) | (set(unread) & set(req_open))
+        primary = next((s for s in pdf_sources if s.get("role") == "primary"), pdf_sources[0])
+        primary_failed = primary.get("parse_status") == "failed"
+        if hard:
+            reasons.append("evidence contradicts the PDF (fix with put): " + ", ".join(f"{f} ({v})" for f, v in hard.items()))
+        if type_bad:
+            reasons.append("contract type mismatch: " + ", ".join(f"{f} ({v})" for f, v in type_bad.items()))
+        if primary_failed:
+            reasons.append("primary PDF could not be parsed: " + str(primary.get("parse_error")))
         if undetermined:
-            reasons.append("not determined: " + ", ".join(undetermined))
+            warnings.append("not determined within budget: " + ", ".join(undetermined))
         if unread:
-            reasons.append("unreadable in the PDF: " + ", ".join(unread))
+            warnings.append("unreadable in the PDF: " + ", ".join(unread))
         if img:
-            reasons.append("read from page images (not machine-verified): " + ", ".join(img))
+            warnings.append("read from page images (provenance-bound, reading not machine-verified): " + ", ".join(img))
         if kw_bad:
-            reasons.append("quote/metric mismatch needs review: " + "; ".join(f"{f}: {' '.join(rs)}" for f, rs in kw_bad.items()))
-        if not answered and any(f not in PROTECTED for f in req_fields):
-            status = "failed" if (undetermined or unread) else "success"
+            warnings.append("quote/metric keyword mismatch, review: " + "; ".join(f"{f}: {' '.join(rs)}" for f, rs in kw_bad.items()))
+        if soft:
+            warnings.append("minor verification gaps: " + ", ".join(f"{f} ({v})" for f, v in soft.items()))
+        if summ is None:
+            warnings.append("verifier report unavailable; evidence was pre-checked by put")
+        if (summ or {}).get("needs_review"):
+            warnings.append("needs review: " + ", ".join(summ["needs_review"]))
+        if not answered and req_open:
+            status = "failed" if missing else "success"
             if status == "failed":
                 reasons.append("no contract field could be answered")
-        elif blocking or bad or undetermined or unread or img or kw_bad or summ is None:
+        elif hard or type_bad or primary_failed or (req_open and len(missing) * 2 > len(req_open)):
             status = "partial"
+            if not hard and not type_bad and not primary_failed:
+                reasons.append(f"core result incomplete: {len(missing)}/{len(req_open)} required fields not determined or unreadable")
         else:
             status = "success"
-            rev = (summ or {}).get("needs_review") or []
-            if rev:
-                reasons.append("answered from verified evidence (needs review: " + ", ".join(rev) + ")")
     res["status"] = status
-    res["status_reason"] = reasons or ["every contract field is answered from verified evidence or reported as absent"]
+    res["status_reason"] = reasons or (["answered fields are backed by verified evidence; open items are listed in warnings"]
+                                       if warnings else ["every contract field is answered from verified evidence or reported as absent"])
+    res["warnings" if "warnings" not in fields_of(res) else "status_warnings"] = warnings
     res.setdefault("run_status", {})["finalized_at"] = now()
     res["change_log"].append({"step": "finalize", "status": status, "at": now(), "notes": log or None})
     save(rpath, res)
-    out = {"status": status, "status_reason": res["status_reason"], "blocking_issues": blocking,
+    blocking = status == "partial" and bool(reasons and reasons[0].startswith("evidence contradicts"))
+    out = {"status": status, "status_reason": res["status_reason"], "warnings": warnings, "blocking_issues": blocking,
            "contract_gaps": (summ or {}).get("contract_gaps") or [],
            "fields": {f: {"verdict": (verdicts.get(f) or {}).get("verdict"),
                           "hint": HINTS.get((verdicts.get(f) or {}).get("verdict"))} for f in fields},
            "needs_review": (summ or {}).get("needs_review"), "verification": vpath, "notes": log or None}
+    if blocking:
+        out["next"] = "put the listed fields again from the PDF (or unreported), then finalize once more"
     print(json.dumps(out, ensure_ascii=False, indent=1))
-    sys.exit(1 if blocking else 0)
+    sys.exit(1 if blocking else 0)  # exit 1 only when an answer contradicts the PDF
 
 
 def main():

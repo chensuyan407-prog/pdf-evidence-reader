@@ -17,8 +17,8 @@
  "execution": {
   "log_path": "execution/run.log",
   "exit_code": 0,
-  "ran_at": "2026-11-25T12:47:23.639995Z",
-  "wall_time_s": 1.94,
+  "ran_at": "2026-11-27T03:43:49.413649Z",
+  "wall_time_s": 3.45,
   "ran_by": "agent",
   "artifacts": [
    {
@@ -26,7 +26,7 @@
     "path": "execution/results/metrics.json",
     "type": "metric",
     "format": "json",
-    "checksum_sha256": "6507c06d6aaa5476d892b107fa2084f3f6bbce26cedeb2920305dea63d016076"
+    "checksum_sha256": "34d4c343cb2b40e6ac169da43068d3735741a76d742d0babb143f7c29aff9cab"
    },
    {
     "id": "preview_two_column",
@@ -47,21 +47,21 @@
     "path": "execution/results/parsed/two_column_en/doc.json",
     "type": "data",
     "format": "json",
-    "checksum_sha256": "3015166d28e07d5cb361dd2a0dc0581beeafa946abb3bca945e150cdc16949e6"
+    "checksum_sha256": "1a1986db64dedfde3fd07f74cbb7d4bc99dc2ceb8c062a902a8267eb274f8c50"
    },
    {
     "id": "parsed_zh",
     "path": "execution/results/parsed/single_column_zh/doc.json",
     "type": "data",
     "format": "json",
-    "checksum_sha256": "3e6f69f8784d841844947d1222d1020d80ab19f4159b5bba3c361c7554261994"
+    "checksum_sha256": "71cb65b76efa6d6ee3aec1b75930fa59af3baa650fe22232040e4378f5a6c32f"
    },
    {
     "id": "parsed_booktabs",
     "path": "execution/results/parsed/booktabs_table/doc.json",
     "type": "data",
     "format": "json",
-    "checksum_sha256": "66bfde914c00da49c1cb8e6da3e3c091f2329f2dbc07416b7f9d0e52454a2bb6"
+    "checksum_sha256": "ff7694e94b7432f9bcfef6823ee29026db2f5dc9567784506aebd94efeb197e6"
    },
    {
     "id": "table_booktabs_html",
@@ -75,14 +75,14 @@
     "path": "execution/results/example_case/output/result.json",
     "type": "data",
     "format": "json",
-    "checksum_sha256": "7b8717de43e77f9488b44f2d2457348abf600ca085ef207be2612371b2813516"
+    "checksum_sha256": "f986ed6cc560b4e1bfa4a2994f42d20dfe8a802fe458dfdcc01af3d1d6d58e0a"
    },
    {
     "id": "example_verification",
     "path": "execution/results/example_case/output/verification.json",
     "type": "data",
     "format": "json",
-    "checksum_sha256": "e27c3226951ffb5a3f1727a08ddb1aef1a7bc3199a5ee4b7544f2fccc6d6287b"
+    "checksum_sha256": "43d067b7e6feabeae87d7c57c49ce7637f91532537cb25c4d01d0513cc3da7a1"
    }
   ]
  },

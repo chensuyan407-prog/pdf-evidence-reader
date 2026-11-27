@@ -569,6 +569,14 @@ def cmd_finalize(a, rpath):
             reasons.append("read from page images (not machine-verified): " + ", ".join(img))
         if kw_bad:
             reasons.append("quote/metric mismatch needs review: " + "; ".join(f"{f}: {' '.join(rs)}" for f, rs in kw_bad.items()))
+        conflicts_list = [c for c in (res.get("conflicts") or []) if isinstance(c, dict)]
+        uncertainty_list = [u for u in (res.get("uncertainty") or []) if isinstance(u, dict)]
+        if conflicts_list:
+            c_desc = "; ".join(f"{c.get('field') or 'general'}: {c.get('note') or c.get('conflict') or ''}".strip(": ") for c in conflicts_list)
+            reasons.append("material conflicts recorded (not hidden): " + c_desc)
+        if uncertainty_list:
+            u_desc = "; ".join(f"{u.get('field') or 'general'}: {u.get('note') or u.get('uncertainty') or ''}".strip(": ") for u in uncertainty_list)
+            reasons.append("uncertainties recorded: " + u_desc)
         if not answered and any(f not in PROTECTED for f in req_fields):
             status = "failed" if (undetermined or unread) else "success"
             if status == "failed":
@@ -587,6 +595,8 @@ def cmd_finalize(a, rpath):
     save(rpath, res)
     out = {"status": status, "status_reason": res["status_reason"], "blocking_issues": blocking,
            "contract_gaps": (summ or {}).get("contract_gaps") or [],
+           "conflicts": res.get("conflicts") or [],
+           "uncertainty": res.get("uncertainty") or [],
            "fields": {f: {"verdict": (verdicts.get(f) or {}).get("verdict"),
                           "hint": HINTS.get((verdicts.get(f) or {}).get("verdict"))} for f in fields},
            "needs_review": (summ or {}).get("needs_review"), "verification": vpath, "notes": log or None}

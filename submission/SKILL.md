@@ -105,25 +105,20 @@ Typical case: discover+parse 1, task+outline 1–2, lookups 2–4 (batched), put
 Long papers (30–80 pages) parse in a few seconds; the cost is reading, so read `outline.md` and query, never page through `document.md`.
 If time is short: `unreported` the rest with a reason and `finalize` — a finalized partial result beats an unfinished one.
 
-## Honesty rules
+## Honesty & Fidelity Checklist (Parse / Table / Equation / Page)
 
-- No value without evidence in a parsed text/table/equation record or an image you actually read; otherwise `unreported` with the reason.
-- Never answer with a fragment of a number (`2.3 ·`); `parsed_cell_incomplete` means go to the image.
-- Heuristic structure is labelled (`role_rule`, `detector`, `transcription_status`, `uncertain_symbols`, section `kind`); say so when you rely on it.
-- Removed headers/footers/figure text (`p3-m2`, `p3-g4`) are not evidence for body claims. Material conflicts go to `note --conflict`.
+- **No silent conflict hiding**: Never mask cross-column, cross-page, or table/text value conflicts; record them via `note --conflict` / `note --uncertainty` while keeping verified high-confidence answers.
+- **Inline evidence**: Every answer must carry verbatim quote, page, table row/col, equation, or crop provenance; mark weak-evidence items with uncertainty rather than deleting them.
+- **Numeric & page fidelity**: Never answer with a fragment (`2.3 ·`); `parsed_cell_incomplete` means crop & read the image. Use physical 1-based page numbers.
+- **Heuristic & margin text**: Label heuristic structure (`role_rule`, `transcription_status`, `uncertain_symbols`); removed headers/footers/figure text (`p3-m2`, `p3-g4`) are not body evidence.
 
 ## Failure handling
 
 | Situation | Scripts | You |
 |---|---|---|
-| Encrypted | `parse_status=failed`, `error=encrypted` | `run_case.py --password` only if given; else `finalize` (status failed, reason recorded) |
-| No text layer, no OCR | page image + regions, listed in outline | read crops, or `unreported --unreadable` |
-| Garbled font encoding | warning `possible_garbled_text`, status partial | prefer crops for affected values |
-| Table detected nowhere | `table_not_found` + `available` list | `find_evidence.py --page N`, crop the region, `put --crop` |
-| `row_ambiguous` (header repeated mid-table, continued table) | candidates listed | add keys / read the page |
-| Equation missing / numbering gap | `equation_number_gap` warning | crop the area |
-| Broken result.json | `fill_result.py` restores from `.bak` automatically | `repair`, then `finalize` |
-| Console encoding errors | scripts print UTF-8 | read the JSON files |
+| Encrypted / No text layer | `parse_status=failed` / `page_image` | `--password` if given, or read crops / `unreported --unreadable` |
+| Garbled font / Missing table | `possible_garbled_text` / `table_not_found` | `find_evidence.py --page N`, `crop_region.py`, `put --crop` |
+| `row_ambiguous` / Eq gap | candidates listed / `equation_number_gap` | add `--row` keys or crop the region |
+| Broken `result.json` | auto-restored from `.bak` | `fill repair`, then `fill finalize` |
 
-Block ids: `p{page}-b{n}` body, `p{page}-m{n}` removed margin text, `p{page}-g{n}` figure text, `p{page}-x{n}` picture
-without text layer. Coordinates: PDF points, origin top-left, physical page numbers (1-based). Methods and limits: `README.md`.
+Block ids: `p{page}-b{n}` body, `p{page}-m{n}` margin, `p{page}-g{n}` figure, `p{page}-x{n}` image without text layer. Coordinates: PDF points, top-left origin, 1-based physical pages.

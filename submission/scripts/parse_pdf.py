@@ -661,6 +661,20 @@ def detect_headers_footers(pages_blocks, page_heights, body_size=None, page_widt
                 hf.append(b)
                 continue
             if not (top or bottom):
+                W = page_widths[pi] if page_widths else 612
+                # Margin line numbers (e.g. preprint / review drafts: 001, 002, ... in outer margin)
+                if b["bbox"][2] < 0.11 * W or b["bbox"][0] > 0.89 * W:
+                    toks = b["text"].split()
+                    if toks and all(re.match(r"^\d{1,4}$", t) for t in toks):
+                        b["role"], b["role_rule"] = "margin_note", "margin line number"
+                        hf.append(b)
+                        continue
+                # Horizontal watermark text (e.g. DRAFT / CONFIDENTIAL / UNDER REVIEW)
+                if re.match(r"^\s*(?:draft|confidential|preprint|under\s+review|do\s+not\s+distribute|watermark)\s*$", b["text"], re.I):
+                    if body_size is None or b["size"] >= 1.3 * body_size:
+                        b["role"], b["role_rule"] = "margin_note", "watermark text"
+                        hf.append(b)
+                        continue
                 continue
             k = norm_key(b["text"])
             repeated = len(cand[k]) >= 2 and len(cand[k]) >= 0.3 * n_pages

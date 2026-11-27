@@ -155,15 +155,28 @@ def query(doc, table, rows, col):
     return first
 
 
+def _strip_fn(s):
+    return re.sub(r"(?:\^\S+|[¹²³⁴⁵⁶⁷⁸⁹⁰ᵃᵇᶜᵈᵉᶠ*†‡]+)\s*$", "", s or "").strip()
+
+
 def _with_columns_of(part, main):
-    """A continuation piece is read with the main table's columns (its own header row, if repeated, is skipped)."""
+    """A continuation piece is read with the main table's columns (its own header row(s), if repeated, are skipped)."""
     mcols = columns_of(main)
     if part.get("n_cols") != main.get("n_cols") or [c["name"] for c in columns_of(part)] == [c["name"] for c in mcols]:
         return part
-    leaf = [_n(c["path"][-1] if c["path"] else "") for c in mcols]
-    repeated = bool(part["rows"]) and [_n(c) for c in part["rows"][0]] == leaf
+    nh_main = (main.get("header") or {}).get("n_header_rows", 1)
+    n_skip = 0
+    if nh_main > 1 and len(part.get("rows", [])) >= nh_main:
+        if [[_n(_strip_fn(c)) for c in r] for r in part["rows"][:nh_main]] == [
+            [_n(_strip_fn(c)) for c in r] for r in main.get("rows", [])[:nh_main]
+        ]:
+            n_skip = nh_main
+    if n_skip == 0 and part.get("rows"):
+        leaf = [_n(_strip_fn(c["path"][-1] if c["path"] else "")) for c in mcols]
+        if [_n(_strip_fn(c)) for c in part["rows"][0]] == leaf:
+            n_skip = 1
     q = dict(part, columns=mcols, key_columns=main.get("key_columns", part.get("key_columns", [0])))
-    q["header"] = dict(part.get("header") or {}, n_header_rows=1 if repeated else 0)
+    q["header"] = dict(part.get("header") or {}, n_header_rows=n_skip)
     return q
 
 
@@ -181,8 +194,8 @@ def _query_one(t, rows, col):
             return {"status": "row_not_found", "reason": f"no column named {k!r}", "columns": [c["name"] for c in cols],
                     "did_you_mean": _close(k, [c["name"] for c in cols]), "table_id": t["id"], "page": t["page"]}
         conds.append((kc[0]["index"], _n(v), k, v))
-    def cell_is(text, v):  # a trailing footnote marker ("Baseline^a") does not change the label
-        return _n(text) == v or _n(re.sub(r"\^\S+$", "", text or "")) == v
+    def cell_is(text, v):  # a trailing footnote marker ("Baseline^a", "Baseline†") does not change the label
+        return _n(text) == v or _n(_strip_fn(text)) == v
     cand = [ri for ri in body if all(cell_is(t["rows"][ri][ci], v) for ci, v, _, _ in conds)]
     base = {"table_id": t["id"], "page": t["page"], "caption": t.get("caption")}
     if not cand:
